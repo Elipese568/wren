@@ -1,7 +1,10 @@
 # Wren
 
+[![CI](https://github.com/Elipese568/wren/actions/workflows/ci.yml/badge.svg)](https://github.com/Elipese568/wren/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 > 小型、单 HWND、retained-mode 的 Windows 自绘 UI 框架。C++20，零第三方依赖。
-> 状态：v0.1（2026-10-29，Windows 11 26H2 / 96 DPI 真机验证）。
+> 状态：v0.2（2026-10-29，Windows 11 26H2 / 96 DPI 真机验证；CI 覆盖格式、构建与单测）。
 
 Wren 把「一个窗口里所有东西都是自己画的」这件事收敛成一套可复用的模型：
 
@@ -243,4 +246,4 @@ Release，760×620，浅色 Mica，安装进度动画（本机 RTX 4060 Ti / 180
 
 ## 许可
 
-本项目暂无 LICENSE 文件；在补上之前按「保留所有权利」理解。
+[MIT](LICENSE)。

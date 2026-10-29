@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    name: clang-format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 版本与 .clang-format 的基线一致，避免升级悄悄改风格。
+      - name: Install clang-format
+        run: pip install clang-format==22.1.3
+
+      - name: Check formatting
+        run: |
+          clang-format --version
+          files=$(git ls-files '*.cpp' '*.h')
+          clang-format --style=file --dry-run --Werror $files
+        shell: bash
+
+  build:
+    name: build (${{ matrix.config }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [Debug, Release]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S . -B build -A x64 -DWREN_WARNINGS_AS_ERRORS=ON
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.config }}
+
+      - name: Test
+        run: ctest --test-dir build -C ${{ matrix.config }} --output-on-failure
+
+      # 渲染冒烟：GDI 路径不依赖 GPU/合成器，CI 上也能跑；失败只提示不拦截。
+      - name: Demo smoke (best effort)
+        if: matrix.config == 'Release'
+        continue-on-error: true
+        run: |
+          $report = "$env:RUNNER_TEMP\wren-report.txt"
+          $process = Start-Process -FilePath "build\Release\wren-demo.exe" `
+            -ArgumentList @('--report', $report, '--auto', '--exit-after', '1500', '--presenter', 'gdi') `
+            -Wait -PassThru
+          Get-Content $report -ErrorAction SilentlyContinue | Select-String 'frames=|presenter.kind|material='
+          if ($process.ExitCode -ne 0) { throw "demo exited with $($process.ExitCode)" }
+          if (-not (Select-String -Path $report -Pattern 'frames=')) { throw 'no frame stats in report' }
