@@ -38,8 +38,8 @@ std::string to_utf8(const std::wstring& value) {
         return {};
     }
 
-    const int size = ::WideCharToMultiByte(CP_UTF8, 0, value.c_str(), static_cast<int>(value.size()), nullptr, 0,
-                                           nullptr, nullptr);
+    const int size =
+        ::WideCharToMultiByte(CP_UTF8, 0, value.c_str(), static_cast<int>(value.size()), nullptr, 0, nullptr, nullptr);
     if (size <= 0) {
         return {};
     }
@@ -52,10 +52,14 @@ std::string to_utf8(const std::wstring& value) {
 
 const wchar_t* appearance_name(Appearance appearance) {
     switch (appearance) {
-        case Appearance::Dark: return L"Dark";
-        case Appearance::HighContrast: return L"HighContrast";
-        case Appearance::Auto: return L"Auto";
-        case Appearance::Light: return L"Light";
+        case Appearance::Dark:
+            return L"Dark";
+        case Appearance::HighContrast:
+            return L"HighContrast";
+        case Appearance::Auto:
+            return L"Auto";
+        case Appearance::Light:
+            return L"Light";
     }
 
     return L"Light";
@@ -258,9 +262,12 @@ struct DemoApp {
 
 const wchar_t* presenter_kind_name(PresenterKind kind) {
     switch (kind) {
-        case PresenterKind::Gpu: return L"Gpu";
-        case PresenterKind::Layered: return L"Layered";
-        case PresenterKind::Gdi: return L"Gdi";
+        case PresenterKind::Gpu:
+            return L"Gpu";
+        case PresenterKind::Layered:
+            return L"Layered";
+        case PresenterKind::Gdi:
+            return L"Gdi";
     }
 
     return L"Gdi";
@@ -352,8 +359,8 @@ void write_report(Host& host, const std::wstring& path) {
             }
 
             dispatch->Release();
-            line(L"child[" + std::to_wstring(index) + L"] role=" + std::to_wstring(role) +
-                 L" state=" + std::to_wstring(state) + L" name=" + name);
+            line(L"child[" + std::to_wstring(index) + L"] role=" + std::to_wstring(role) + L" state=" +
+                 std::to_wstring(state) + L" name=" + name);
         }
 
         root->Release();
@@ -525,7 +532,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     auto* details_card = root->emplace<Card>();
     details_card->bounds = {18.0f, 276.0f, 724.0f, 152.0f};
 
-    auto* details_caption = details_card->emplace<Label>(L"证书详情（TextView：滚轮/滚动条、Tab 聚焦、Ctrl+A/C 复制）", base.caption);
+    auto* details_caption =
+        details_card->emplace<Label>(L"证书详情（TextView：滚轮/滚动条、Tab 聚焦、Ctrl+A/C 复制）", base.caption);
     details_caption->bounds = {32.0f, 288.0f, 696.0f, 16.0f};
     details_caption->set_tone(LabelTone::Secondary);
 

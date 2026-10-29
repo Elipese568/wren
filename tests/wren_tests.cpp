@@ -125,7 +125,8 @@ void test_geometry_and_color() {
 
     const Color color = Color::from_argb(0x80FF8000u);
     check(close_enough(color.a, 128.0f / 255.0f), "argb alpha decoded");
-    check(close_enough(color.r, 1.0f) && close_enough(color.g, 128.0f / 255.0f) && close_enough(color.b, 0.0f), "argb channels decoded");
+    check(close_enough(color.r, 1.0f) && close_enough(color.g, 128.0f / 255.0f) && close_enough(color.b, 0.0f),
+          "argb channels decoded");
     check(close_enough(color.mix(Color::black(), 0.5f).r, 0.5f), "color mix halfway");
 }
 

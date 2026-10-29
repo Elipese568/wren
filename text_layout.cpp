@@ -10,16 +10,16 @@ bool is_space(wchar_t c) {
 }
 
 bool is_cjk_range(wchar_t c) {
-    return (c >= 0x1100 && c <= 0x11FF) ||    // 谚文字母
-           (c >= 0x2E80 && c <= 0x303F) ||    // CJK 部首、标点
-           (c >= 0x3040 && c <= 0x30FF) ||    // 假名
-           (c >= 0x3400 && c <= 0x4DBF) ||    // 扩展 A
-           (c >= 0x4E00 && c <= 0x9FFF) ||    // 基本区
-           (c >= 0xA000 && c <= 0xA4CF) ||    // 彝文
-           (c >= 0xAC00 && c <= 0xD7AF) ||    // 谚文音节
-           (c >= 0xF900 && c <= 0xFAFF) ||    // 兼容表意
-           (c >= 0xFE30 && c <= 0xFE4F) ||    // 兼容标点
-           (c >= 0xFF00 && c <= 0xFF60) ||    // 全角字符
+    return (c >= 0x1100 && c <= 0x11FF) ||  // 谚文字母
+           (c >= 0x2E80 && c <= 0x303F) ||  // CJK 部首、标点
+           (c >= 0x3040 && c <= 0x30FF) ||  // 假名
+           (c >= 0x3400 && c <= 0x4DBF) ||  // 扩展 A
+           (c >= 0x4E00 && c <= 0x9FFF) ||  // 基本区
+           (c >= 0xA000 && c <= 0xA4CF) ||  // 彝文
+           (c >= 0xAC00 && c <= 0xD7AF) ||  // 谚文音节
+           (c >= 0xF900 && c <= 0xFAFF) ||  // 兼容表意
+           (c >= 0xFE30 && c <= 0xFE4F) ||  // 兼容标点
+           (c >= 0xFF00 && c <= 0xFF60) ||  // 全角字符
            (c >= 0xFFE0 && c <= 0xFFE6);
 }
 

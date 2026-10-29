@@ -86,8 +86,8 @@ Color Color::rgb(uint8_t r, uint8_t g, uint8_t b) {
 }
 
 Color Color::rgba(uint8_t r, uint8_t g, uint8_t b, float alpha) {
-    return {static_cast<float>(r) / 255.0f, static_cast<float>(g) / 255.0f,
-            static_cast<float>(b) / 255.0f, clamp01(alpha)};
+    return {static_cast<float>(r) / 255.0f, static_cast<float>(g) / 255.0f, static_cast<float>(b) / 255.0f,
+            clamp01(alpha)};
 }
 
 Color Color::from_colorref(COLORREF value) {
@@ -120,9 +120,7 @@ Gdiplus::Color Color::to_gdiplus() const {
 // ============================================================================
 
 Canvas::Canvas(Gdiplus::Bitmap& bitmap, float dpi, int width_px, int height_px)
-    : graphics_(std::make_unique<Gdiplus::Graphics>(&bitmap)),
-      dpi_(dpi > 0.0f ? dpi : 96.0f),
-      width_px_(width_px),
+    : graphics_(std::make_unique<Gdiplus::Graphics>(&bitmap)), dpi_(dpi > 0.0f ? dpi : 96.0f), width_px_(width_px),
       height_px_(height_px) {
     graphics_->SetPageUnit(Gdiplus::UnitPixel);
     graphics_->SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
@@ -217,15 +215,27 @@ Gdiplus::StringFormat* Canvas::draw_format(const TextStyle& style) {
     }
 
     switch (style.align) {
-        case TextAlign::Center: format->SetAlignment(Gdiplus::StringAlignmentCenter); break;
-        case TextAlign::Right: format->SetAlignment(Gdiplus::StringAlignmentFar); break;
-        case TextAlign::Left: format->SetAlignment(Gdiplus::StringAlignmentNear); break;
+        case TextAlign::Center:
+            format->SetAlignment(Gdiplus::StringAlignmentCenter);
+            break;
+        case TextAlign::Right:
+            format->SetAlignment(Gdiplus::StringAlignmentFar);
+            break;
+        case TextAlign::Left:
+            format->SetAlignment(Gdiplus::StringAlignmentNear);
+            break;
     }
 
     switch (style.valign) {
-        case TextVAlign::Center: format->SetLineAlignment(Gdiplus::StringAlignmentCenter); break;
-        case TextVAlign::Bottom: format->SetLineAlignment(Gdiplus::StringAlignmentFar); break;
-        case TextVAlign::Top: format->SetLineAlignment(Gdiplus::StringAlignmentNear); break;
+        case TextVAlign::Center:
+            format->SetLineAlignment(Gdiplus::StringAlignmentCenter);
+            break;
+        case TextVAlign::Bottom:
+            format->SetLineAlignment(Gdiplus::StringAlignmentFar);
+            break;
+        case TextVAlign::Top:
+            format->SetLineAlignment(Gdiplus::StringAlignmentNear);
+            break;
     }
 
     format->SetTrimming(style.ellipsis ? Gdiplus::StringTrimmingEllipsisCharacter : Gdiplus::StringTrimmingNone);
@@ -328,8 +338,7 @@ void Canvas::stroke_round_rect(const RectF& rect, float radius, const Color& col
         const float limit = std::min(inner.width, inner.height) * 0.5f;
         const float r = std::clamp(std::max(0.0f, radius - width * 0.5f), 0.0f, std::max(0.0f, limit));
         d2d_brush_->SetColor(to_d2d(color));
-        d2d_->DrawRoundedRectangle(D2D1::RoundedRect(to_d2d(inner), r, r), d2d_brush_.Get(), width,
-                                   d2d_stroke_.Get());
+        d2d_->DrawRoundedRectangle(D2D1::RoundedRect(to_d2d(inner), r, r), d2d_brush_.Get(), width, d2d_stroke_.Get());
         return;
     }
 
@@ -376,8 +385,8 @@ void Canvas::draw_text(std::wstring_view text, const RectF& rect, const TextStyl
     draw_text_immediate(text, rect, style, color);
 }
 
-void Canvas::draw_text_immediate(std::wstring_view text, const RectF& rect, const TextStyle& style,
-                                 const Color& color, const RectF& clip) {
+void Canvas::draw_text_immediate(std::wstring_view text, const RectF& rect, const TextStyle& style, const Color& color,
+                                 const RectF& clip) {
     if (d2d_ != nullptr) {
         // 硬件后端没有 GDI+ Graphics；文字由 DirectWriteText 画到同一个 D2D target。
         // Host 只在文字引擎就绪时才启用硬件路径，所以这里只会是误用。
@@ -570,8 +579,8 @@ void Canvas::draw_icon_d2d(IconId icon, const RectF& rect, const Color& color) {
             const float center_x = ox + s * 0.5f;
             const float center_y = oy + s * 0.5f;
             const float radius = s * 0.4f;
-            d2d_->DrawEllipse(D2D1::Ellipse(D2D1::Point2F(center_x, center_y), radius, radius), d2d_brush_.Get(),
-                              width, d2d_stroke_.Get());
+            d2d_->DrawEllipse(D2D1::Ellipse(D2D1::Point2F(center_x, center_y), radius, radius), d2d_brush_.Get(), width,
+                              d2d_stroke_.Get());
             line(px(0.5f), py(0.44f), px(0.5f), py(0.68f));
             dot(px(0.5f), py(0.3f), s * 0.04f);
             break;

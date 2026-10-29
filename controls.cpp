@@ -19,11 +19,16 @@ constexpr float kCellPadding = 8.0f;
 
 Color tone_color(const Theme& theme, LabelTone tone) {
     switch (tone) {
-        case LabelTone::Secondary: return theme.text_secondary;
-        case LabelTone::Disabled: return theme.text_disabled;
-        case LabelTone::Accent: return theme.accent;
-        case LabelTone::Warning: return theme.warning;
-        case LabelTone::Primary: return theme.text;
+        case LabelTone::Secondary:
+            return theme.text_secondary;
+        case LabelTone::Disabled:
+            return theme.text_disabled;
+        case LabelTone::Accent:
+            return theme.accent;
+        case LabelTone::Warning:
+            return theme.warning;
+        case LabelTone::Primary:
+            return theme.text;
     }
 
     return theme.text;
@@ -532,9 +537,7 @@ void TextView::relayout(Canvas& canvas) {
     const float viewport = std::max(0.0f, bounds.height - kPadding * 2.0f);
     const float full_width = std::max(1.0f, bounds.width - kPadding * 2.0f);
 
-    const auto measure = [&canvas, this](std::wstring_view value) {
-        return canvas.measure_text_width(value, style_);
-    };
+    const auto measure = [&canvas, this](std::wstring_view value) { return canvas.measure_text_width(value, style_); };
 
     lines_ = wrap_text(text, full_width, measure);
     if (static_cast<float>(lines_.size()) * line_height_ > viewport && full_width > kScrollbarWidth + 16.0f) {
@@ -585,8 +588,8 @@ void TextView::paint(Canvas& canvas) {
 
     canvas.pop_clip();
 
-    const ScrollBarMetrics metrics = scrollbar_metrics(bounds.inset(2.0f), content_height_,
-                                                       bounds.height - kPadding * 2.0f, scroll_);
+    const ScrollBarMetrics metrics =
+        scrollbar_metrics(bounds.inset(2.0f), content_height_, bounds.height - kPadding * 2.0f, scroll_);
     if (metrics.visible) {
         canvas.fill_round_rect(metrics.thumb, metrics.thumb.width * 0.5f, current.scrollbar_thumb);
     }
@@ -645,8 +648,8 @@ bool TextView::on_mouse(const MouseEvent& event) {
 
             {
                 const ScrollBarMetrics metrics = scrollbar_metrics(area, content_height_, viewport, scroll_);
-                scroll_to(scroll_for_thumb_y(area, content_height_, viewport, event.y - drag_grab_,
-                                             metrics.thumb.height));
+                scroll_to(
+                    scroll_for_thumb_y(area, content_height_, viewport, event.y - drag_grab_, metrics.thumb.height));
             }
             return true;
 
@@ -881,9 +884,10 @@ void Table::paint(Canvas& canvas) {
             }
 
             const float width = std::min(column.width, content.right() - x);
-            canvas.draw_text(column.title, {x + kCellPadding, content.y, std::max(0.0f, width - kCellPadding * 2.0f),
-                                            header_height()},
-                             header, current.text_secondary);
+            canvas.draw_text(
+                column.title,
+                {x + kCellPadding, content.y, std::max(0.0f, width - kCellPadding * 2.0f), header_height()}, header,
+                current.text_secondary);
             x += column.width;
         }
 
@@ -923,10 +927,10 @@ void Table::paint(Canvas& canvas) {
                 }
 
                 const float visible_width = std::min(width, row.x + usable_width - x);
-                canvas.draw_text(values[column],
-                                 {x + kCellPadding, row.y, std::max(0.0f, visible_width - kCellPadding * 2.0f),
-                                  row.height},
-                                 cell, current.text);
+                canvas.draw_text(
+                    values[column],
+                    {x + kCellPadding, row.y, std::max(0.0f, visible_width - kCellPadding * 2.0f), row.height}, cell,
+                    current.text);
                 x += width;
             }
 
@@ -981,10 +985,10 @@ bool Table::on_mouse(const MouseEvent& event) {
 
         case MouseEvent::Type::Move: {
             if (dragging_thumb_) {
-                const float target = scroll_for_thumb_y({bounds.x + 1.0f, bounds.y + 1.0f, bounds.width - 2.0f,
-                                                         bounds.height - 2.0f},
-                                                        static_cast<float>(rows_.size()) * row_height(), view.height,
-                                                        event.y - drag_grab_, metrics.thumb.height);
+                const float target =
+                    scroll_for_thumb_y({bounds.x + 1.0f, bounds.y + 1.0f, bounds.width - 2.0f, bounds.height - 2.0f},
+                                       static_cast<float>(rows_.size()) * row_height(), view.height,
+                                       event.y - drag_grab_, metrics.thumb.height);
                 const float clamped = std::clamp(target, 0.0f, max_scroll());
                 if (std::abs(clamped - scroll_) >= 0.01f) {
                     scroll_ = clamped;
@@ -1029,8 +1033,7 @@ bool Table::on_key(const KeyEvent& event) {
         return false;
     }
 
-    const int current =
-        selected_row_ < 0 ? (event.vk == VK_END ? count - 1 : 0) : selected_row_;
+    const int current = selected_row_ < 0 ? (event.vk == VK_END ? count - 1 : 0) : selected_row_;
     const int page = std::max(1, static_cast<int>(row_view_bounds().height / row_height()));
 
     switch (event.vk) {

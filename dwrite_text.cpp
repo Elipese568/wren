@@ -9,9 +9,12 @@ namespace {
 
 DWRITE_TEXT_ALIGNMENT to_alignment(TextAlign align) {
     switch (align) {
-        case TextAlign::Center: return DWRITE_TEXT_ALIGNMENT_CENTER;
-        case TextAlign::Right: return DWRITE_TEXT_ALIGNMENT_TRAILING;
-        case TextAlign::Left: return DWRITE_TEXT_ALIGNMENT_LEADING;
+        case TextAlign::Center:
+            return DWRITE_TEXT_ALIGNMENT_CENTER;
+        case TextAlign::Right:
+            return DWRITE_TEXT_ALIGNMENT_TRAILING;
+        case TextAlign::Left:
+            return DWRITE_TEXT_ALIGNMENT_LEADING;
     }
 
     return DWRITE_TEXT_ALIGNMENT_LEADING;
@@ -19,9 +22,12 @@ DWRITE_TEXT_ALIGNMENT to_alignment(TextAlign align) {
 
 DWRITE_PARAGRAPH_ALIGNMENT to_paragraph(TextVAlign valign) {
     switch (valign) {
-        case TextVAlign::Center: return DWRITE_PARAGRAPH_ALIGNMENT_CENTER;
-        case TextVAlign::Bottom: return DWRITE_PARAGRAPH_ALIGNMENT_FAR;
-        case TextVAlign::Top: return DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
+        case TextVAlign::Center:
+            return DWRITE_PARAGRAPH_ALIGNMENT_CENTER;
+        case TextVAlign::Bottom:
+            return DWRITE_PARAGRAPH_ALIGNMENT_FAR;
+        case TextVAlign::Top:
+            return DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
     }
 
     return DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
@@ -43,8 +49,7 @@ DirectWriteText::~DirectWriteText() = default;
 
 bool DirectWriteText::initialize() {
     if (d2d_factory_ == nullptr) {
-        if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED,
-                                     d2d_factory_.ReleaseAndGetAddressOf()))) {
+        if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, d2d_factory_.ReleaseAndGetAddressOf()))) {
             return false;
         }
     }
@@ -65,8 +70,8 @@ bool DirectWriteText::initialize() {
 }
 
 bool DirectWriteText::bind(HDC memory_dc, int width_px, int height_px) {
-    if (memory_dc != nullptr && memory_dc == bound_dc_ && width_px == width_px_ &&
-        height_px == height_px_ && dc_target_ != nullptr) {
+    if (memory_dc != nullptr && memory_dc == bound_dc_ && width_px == width_px_ && height_px == height_px_ &&
+        dc_target_ != nullptr) {
         return true;
     }
 
@@ -76,8 +81,7 @@ bool DirectWriteText::bind(HDC memory_dc, int width_px, int height_px) {
     }
 
     const D2D1_RENDER_TARGET_PROPERTIES properties = D2D1::RenderTargetProperties(
-        D2D1_RENDER_TARGET_TYPE_DEFAULT,
-        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED));
+        D2D1_RENDER_TARGET_TYPE_DEFAULT, D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED));
 
     if (FAILED(d2d_factory_->CreateDCRenderTarget(&properties, dc_target_.ReleaseAndGetAddressOf()))) {
         reset();
@@ -90,8 +94,8 @@ bool DirectWriteText::bind(HDC memory_dc, int width_px, int height_px) {
         return false;
     }
 
-    if (FAILED(dc_target_->CreateSolidColorBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f, 1.0f),
-                                                 brush_.ReleaseAndGetAddressOf()))) {
+    if (FAILED(
+            dc_target_->CreateSolidColorBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f, 1.0f), brush_.ReleaseAndGetAddressOf()))) {
         reset();
         return false;
     }
@@ -120,8 +124,7 @@ bool DirectWriteText::bind(ID2D1RenderTarget* target) {
         return false;
     }
 
-    if (FAILED(target->CreateSolidColorBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f, 1.0f),
-                                            brush_.ReleaseAndGetAddressOf()))) {
+    if (FAILED(target->CreateSolidColorBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f, 1.0f), brush_.ReleaseAndGetAddressOf()))) {
         reset();
         return false;
     }
@@ -146,9 +149,8 @@ void DirectWriteText::reset() {
 std::wstring DirectWriteText::key_for(const TextStyle& style) {
     return style.family + L"|" + std::to_wstring(static_cast<int>(style.size * 10.0f + 0.5f)) + L"|" +
            std::to_wstring(style.weight) + (style.italic ? L"|i|" : L"|n|") +
-           std::to_wstring(static_cast<int>(style.align)) + L"|" +
-           std::to_wstring(static_cast<int>(style.valign)) + (style.wrap ? L"|w" : L"|nw") +
-           (style.ellipsis ? L"|e" : L"|ne");
+           std::to_wstring(static_cast<int>(style.align)) + L"|" + std::to_wstring(static_cast<int>(style.valign)) +
+           (style.wrap ? L"|w" : L"|nw") + (style.ellipsis ? L"|e" : L"|ne");
 }
 
 DirectWriteText::FormatEntry* DirectWriteText::entry_for(const TextStyle& style) {
@@ -162,19 +164,17 @@ DirectWriteText::FormatEntry* DirectWriteText::entry_for(const TextStyle& style)
         return nullptr;
     }
 
-    const DWRITE_FONT_WEIGHT weight =
-        style.weight >= 600 ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL;
+    const DWRITE_FONT_WEIGHT weight = style.weight >= 600 ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL;
     const DWRITE_FONT_STYLE font_style = style.italic ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL;
 
     FormatEntry entry;
-    HRESULT status = dwrite_factory_->CreateTextFormat(
-        style.family.c_str(), nullptr, weight, font_style, DWRITE_FONT_STRETCH_NORMAL, style.size, L"",
-        entry.format.ReleaseAndGetAddressOf());
+    HRESULT status =
+        dwrite_factory_->CreateTextFormat(style.family.c_str(), nullptr, weight, font_style, DWRITE_FONT_STRETCH_NORMAL,
+                                          style.size, L"", entry.format.ReleaseAndGetAddressOf());
 
     if (FAILED(status)) {
-        status = dwrite_factory_->CreateTextFormat(L"Segoe UI", nullptr, weight, font_style,
-                                                   DWRITE_FONT_STRETCH_NORMAL, style.size, L"",
-                                                   entry.format.ReleaseAndGetAddressOf());
+        status = dwrite_factory_->CreateTextFormat(L"Segoe UI", nullptr, weight, font_style, DWRITE_FONT_STRETCH_NORMAL,
+                                                   style.size, L"", entry.format.ReleaseAndGetAddressOf());
     }
 
     if (FAILED(status) || entry.format == nullptr) {
@@ -212,8 +212,7 @@ bool DirectWriteText::begin(float dpi, bool begin_draw) {
 }
 
 void DirectWriteText::draw(const TextCommand& command) {
-    if (!drawing_ || dwrite_factory_ == nullptr || rt_ == nullptr || command.text.empty() ||
-        command.rect.empty()) {
+    if (!drawing_ || dwrite_factory_ == nullptr || rt_ == nullptr || command.text.empty() || command.rect.empty()) {
         return;
     }
 
@@ -223,9 +222,8 @@ void DirectWriteText::draw(const TextCommand& command) {
     }
 
     Microsoft::WRL::ComPtr<IDWriteTextLayout> layout;
-    if (FAILED(dwrite_factory_->CreateTextLayout(command.text.c_str(),
-                                                 static_cast<UINT32>(command.text.size()), entry->format.Get(),
-                                                 command.rect.width, command.rect.height,
+    if (FAILED(dwrite_factory_->CreateTextLayout(command.text.c_str(), static_cast<UINT32>(command.text.size()),
+                                                 entry->format.Get(), command.rect.width, command.rect.height,
                                                  layout.ReleaseAndGetAddressOf()))) {
         return;
     }
@@ -280,9 +278,8 @@ float DirectWriteText::measure_width(std::wstring_view text, const TextStyle& st
     }
 
     Microsoft::WRL::ComPtr<IDWriteTextLayout> layout;
-    if (FAILED(dwrite_factory_->CreateTextLayout(text.data(), static_cast<UINT32>(text.size()),
-                                                 entry->format.Get(), 100000.0f, 100000.0f,
-                                                 layout.ReleaseAndGetAddressOf()))) {
+    if (FAILED(dwrite_factory_->CreateTextLayout(text.data(), static_cast<UINT32>(text.size()), entry->format.Get(),
+                                                 100000.0f, 100000.0f, layout.ReleaseAndGetAddressOf()))) {
         return 0.0f;
     }
 
@@ -315,8 +312,8 @@ float DirectWriteText::line_height(const TextStyle& style, float dpi) {
     if (initialize()) {
         if (FormatEntry* entry = entry_for(probe); entry != nullptr && entry->format != nullptr) {
             Microsoft::WRL::ComPtr<IDWriteTextLayout> layout;
-            if (SUCCEEDED(dwrite_factory_->CreateTextLayout(L"Ag", 2, entry->format.Get(), 100000.0f,
-                                                            100000.0f, layout.ReleaseAndGetAddressOf()))) {
+            if (SUCCEEDED(dwrite_factory_->CreateTextLayout(L"Ag", 2, entry->format.Get(), 100000.0f, 100000.0f,
+                                                            layout.ReleaseAndGetAddressOf()))) {
                 DWRITE_TEXT_METRICS metrics{};
                 if (SUCCEEDED(layout->GetMetrics(&metrics)) && metrics.height > 0.0f) {
                     value = metrics.height;

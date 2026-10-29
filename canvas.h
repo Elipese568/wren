@@ -35,13 +35,9 @@ struct RectF {
     float right() const { return x + width; }
     float bottom() const { return y + height; }
     bool empty() const { return width <= 0.0f || height <= 0.0f; }
-    bool contains(float px, float py) const {
-        return px >= x && py >= y && px < right() && py < bottom();
-    }
+    bool contains(float px, float py) const { return px >= x && py >= y && px < right() && py < bottom(); }
 
-    RectF inset(float amount) const {
-        return {x + amount, y + amount, width - amount * 2.0f, height - amount * 2.0f};
-    }
+    RectF inset(float amount) const { return {x + amount, y + amount, width - amount * 2.0f, height - amount * 2.0f}; }
 
     RectF offset(float dx, float dy) const { return {x + dx, y + dy, width, height}; }
 };

@@ -55,8 +55,7 @@ public:
         blend.SourceConstantAlpha = 255;
         blend.AlphaFormat = AC_SRC_ALPHA;
 
-        ::UpdateLayeredWindow(hwnd_, nullptr, &destination, &size, frame.memory_dc(), &source, 0, &blend,
-                              ULW_ALPHA);
+        ::UpdateLayeredWindow(hwnd_, nullptr, &destination, &size, frame.memory_dc(), &source, 0, &blend, ULW_ALPHA);
     }
 
 private:

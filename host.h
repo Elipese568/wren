@@ -28,15 +28,15 @@ namespace wren {
 /// GDI 路径则会出现 BitBlt 与 WM_TIMER 造成的抖动。
 struct FrameStats {
     unsigned long long frames = 0;
-    double render_ms = 0.0;      ///< 形状 + 文字（CPU）平均耗时
-    double paint_ms = 0.0;       ///< 形状/清屏/布局平均耗时
-    double text_ms = 0.0;        ///< DirectWrite 文字平均耗时
-    double present_ms = 0.0;     ///< 上屏（Present / BitBlt / UpdateLayeredWindow）平均耗时
-    double interval_ms = 0.0;    ///< 相邻两帧起点的平均间隔
+    double render_ms = 0.0;    ///< 形状 + 文字（CPU）平均耗时
+    double paint_ms = 0.0;     ///< 形状/清屏/布局平均耗时
+    double text_ms = 0.0;      ///< DirectWrite 文字平均耗时
+    double present_ms = 0.0;   ///< 上屏（Present / BitBlt / UpdateLayeredWindow）平均耗时
+    double interval_ms = 0.0;  ///< 相邻两帧起点的平均间隔
     double interval_p95_ms = 0.0;
     double interval_max_ms = 0.0;
-    int dropped = 0;             ///< 动画期间间隔 > 1.5 个 60Hz 周期的次数
-    int refresh_hz = 0;          ///< 由平均间隔反推的刷新率
+    int dropped = 0;     ///< 动画期间间隔 > 1.5 个 60Hz 周期的次数
+    int refresh_hz = 0;  ///< 由平均间隔反推的刷新率
 };
 
 struct HostOptions {

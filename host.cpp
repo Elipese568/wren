@@ -26,8 +26,7 @@ enum class PresenterPreference { Auto, Gdi, Gpu, Layered };
 
 PresenterPreference presenter_preference() {
     wchar_t value[64]{};
-    const DWORD length = ::GetEnvironmentVariableW(L"WREN_PRESENTER", value,
-                                                   static_cast<DWORD>(std::size(value)));
+    const DWORD length = ::GetEnvironmentVariableW(L"WREN_PRESENTER", value, static_cast<DWORD>(std::size(value)));
     if (length == 0) {
         return PresenterPreference::Auto;
     }
@@ -252,8 +251,8 @@ int Host::run() {
                 const int ticks_needed =
                     (animation_interval_ms_ <= 0 || clock_period_ms_ <= 0.5)
                         ? 1
-                        : std::max(1, static_cast<int>(std::lround(
-                                           static_cast<double>(animation_interval_ms_) / clock_period_ms_)));
+                        : std::max(1, static_cast<int>(
+                                          std::lround(static_cast<double>(animation_interval_ms_) / clock_period_ms_)));
 
                 if (clock_ticks_ >= ticks_needed) {
                     clock_ticks_ = 0;
@@ -668,8 +667,8 @@ void Host::record_frame(double start_ms, double paint_done_ms, double raster_don
 
     if (last_frame_start_ms_ > 0.0 && frames_rendered_ > 5) {
         const double interval = start_ms - last_frame_start_ms_;
-        const double expected = animation_interval_ms_ > 0 ? static_cast<double>(animation_interval_ms_)
-                                                          : clock_period_ms_;
+        const double expected =
+            animation_interval_ms_ > 0 ? static_cast<double>(animation_interval_ms_) : clock_period_ms_;
         if (animating_ && expected > 0.5 && interval > expected * 1.5 && interval < 250.0) {
             ++dropped_frames_;
         }
@@ -750,9 +749,7 @@ void Host::advance_animation() {
     }
 
     const double now = now_ms();
-    const float dt = last_tick_ms_ > 0.0
-                         ? std::min(static_cast<float>((now - last_tick_ms_) / 1000.0), 0.25f)
-                         : 0.0f;
+    const float dt = last_tick_ms_ > 0.0 ? std::min(static_cast<float>((now - last_tick_ms_) / 1000.0), 0.25f) : 0.0f;
     last_tick_ms_ = now;
 
     if (root_ != nullptr) {
@@ -780,7 +777,8 @@ void Host::sync_animation_timer() {
 
     if (want_timer && !animation_timer_active_) {
         ::SetTimer(hwnd_, kAnimationTimer, static_cast<UINT>(std::max(8, animation_interval_ms_)), nullptr);
-        animation_timer_active_ = true;    } else if (!want_timer && animation_timer_active_) {
+        animation_timer_active_ = true;
+    } else if (!want_timer && animation_timer_active_) {
         ::KillTimer(hwnd_, kAnimationTimer);
         animation_timer_active_ = false;
     }

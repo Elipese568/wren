@@ -169,7 +169,8 @@ void apply_dark_title_bar(HWND hwnd, bool dark) {
     ::DwmFlush();
 }
 
-std::unique_ptr<Material> make_material(MaterialPreference preference) {    switch (preference) {
+std::unique_ptr<Material> make_material(MaterialPreference preference) {
+    switch (preference) {
         case MaterialPreference::Mica:
             return std::make_unique<MicaMaterial>();
         case MaterialPreference::Acrylic:
@@ -184,9 +185,12 @@ std::unique_ptr<Material> make_material(MaterialPreference preference) {    swit
 
 const wchar_t* material_name(MaterialKind kind) {
     switch (kind) {
-        case MaterialKind::Mica: return L"Mica";
-        case MaterialKind::Acrylic: return L"Acrylic";
-        case MaterialKind::Solid: return L"Solid";
+        case MaterialKind::Mica:
+            return L"Mica";
+        case MaterialKind::Acrylic:
+            return L"Acrylic";
+        case MaterialKind::Solid:
+            return L"Solid";
     }
 
     return L"Solid";

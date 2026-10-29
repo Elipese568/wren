@@ -86,8 +86,14 @@ public:
     /// 控件应该返回 nullptr，让点击落到下面的 Panel 上。
     virtual Widget* hit_test(float x, float y);
 
-    virtual bool on_mouse(const MouseEvent& event) { (void)event; return false; }
-    virtual bool on_key(const KeyEvent& event) { (void)event; return false; }
+    virtual bool on_mouse(const MouseEvent& event) {
+        (void)event;
+        return false;
+    }
+    virtual bool on_key(const KeyEvent& event) {
+        (void)event;
+        return false;
+    }
     virtual void tick(float dt_seconds) { (void)dt_seconds; }
     virtual void on_focus() {}
     virtual void on_blur() {}

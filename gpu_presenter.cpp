@@ -38,9 +38,7 @@ public:
     const wchar_t* name() const override { return L"D3D11 + DComp · VSync"; }
     HANDLE frame_wait_handle() const override { return frame_wait_; }
     bool healthy() const override { return healthy_; }
-    ID2D1DeviceContext* d2d_context() const override {
-        return d2d_context_ != nullptr ? d2d_context_.Get() : nullptr;
-    }
+    ID2D1DeviceContext* d2d_context() const override { return d2d_context_ != nullptr ? d2d_context_.Get() : nullptr; }
     bool compositor_paced() const override { return true; }
 
     bool initialize(HWND hwnd, int width_px, int height_px) override {
@@ -80,8 +78,8 @@ public:
         }
 
         d2d_context_->SetDpi(96.0f, 96.0f);
-        d2d_context_->SetTransform(D2D1::Matrix3x2F::Scale(dpi > 0.0f ? dpi / 96.0f : 1.0f,
-                                                          dpi > 0.0f ? dpi / 96.0f : 1.0f));
+        d2d_context_->SetTransform(
+            D2D1::Matrix3x2F::Scale(dpi > 0.0f ? dpi / 96.0f : 1.0f, dpi > 0.0f ? dpi / 96.0f : 1.0f));
         d2d_context_->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
         d2d_context_->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
         d2d_context_->BeginDraw();
@@ -106,8 +104,8 @@ public:
         // D2D 画在普通纹理上（交换链 back buffer 不能直接当 D2D target），
         // 最后一步 GPU→GPU 拷到 back buffer 再 Present。
         ComPtr<ID3D11Texture2D> back_buffer;
-        if (d2d_texture_ == nullptr ||
-            FAILED(swap_chain_->GetBuffer(0, IID_PPV_ARGS(&back_buffer))) || back_buffer == nullptr) {
+        if (d2d_texture_ == nullptr || FAILED(swap_chain_->GetBuffer(0, IID_PPV_ARGS(&back_buffer))) ||
+            back_buffer == nullptr) {
             healthy_ = false;
             return;
         }
@@ -234,8 +232,8 @@ private:
         }
 
         const D2D1_BITMAP_PROPERTIES1 properties = D2D1::BitmapProperties1(
-            D2D1_BITMAP_OPTIONS_TARGET,
-            D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED), 96.0f, 96.0f);
+            D2D1_BITMAP_OPTIONS_TARGET, D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+            96.0f, 96.0f);
 
         if (FAILED(d2d_context_->CreateBitmapFromDxgiSurface(surface.Get(), &properties,
                                                              d2d_target_.ReleaseAndGetAddressOf()))) {
@@ -271,14 +269,13 @@ private:
             return false;
         }
 
-        if (d2d_device_ == nullptr && FAILED(d2d_factory_->CreateDevice(dxgi_device_.Get(),
-                                                                        d2d_device_.ReleaseAndGetAddressOf()))) {
+        if (d2d_device_ == nullptr &&
+            FAILED(d2d_factory_->CreateDevice(dxgi_device_.Get(), d2d_device_.ReleaseAndGetAddressOf()))) {
             return false;
         }
 
-        if (d2d_context_ == nullptr &&
-            FAILED(d2d_device_->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE,
-                                                    d2d_context_.ReleaseAndGetAddressOf()))) {
+        if (d2d_context_ == nullptr && FAILED(d2d_device_->CreateDeviceContext(
+                                           D2D1_DEVICE_CONTEXT_OPTIONS_NONE, d2d_context_.ReleaseAndGetAddressOf()))) {
             return false;
         }
 

@@ -17,15 +17,24 @@ namespace {
 
 long msaa_role(Role role) {
     switch (role) {
-        case Role::Label: return ROLE_SYSTEM_STATICTEXT;
-        case Role::Button: return ROLE_SYSTEM_PUSHBUTTON;
-        case Role::Checkbox: return ROLE_SYSTEM_CHECKBUTTON;
-        case Role::Progress: return ROLE_SYSTEM_PROGRESSBAR;
-        case Role::Text: return ROLE_SYSTEM_TEXT;
-        case Role::Table: return ROLE_SYSTEM_LIST;
-        case Role::Row: return ROLE_SYSTEM_LISTITEM;
-        case Role::ScrollBar: return ROLE_SYSTEM_SCROLLBAR;
-        case Role::Panel: return ROLE_SYSTEM_PANE;
+        case Role::Label:
+            return ROLE_SYSTEM_STATICTEXT;
+        case Role::Button:
+            return ROLE_SYSTEM_PUSHBUTTON;
+        case Role::Checkbox:
+            return ROLE_SYSTEM_CHECKBUTTON;
+        case Role::Progress:
+            return ROLE_SYSTEM_PROGRESSBAR;
+        case Role::Text:
+            return ROLE_SYSTEM_TEXT;
+        case Role::Table:
+            return ROLE_SYSTEM_LIST;
+        case Role::Row:
+            return ROLE_SYSTEM_LISTITEM;
+        case Role::ScrollBar:
+            return ROLE_SYSTEM_SCROLLBAR;
+        case Role::Panel:
+            return ROLE_SYSTEM_PANE;
     }
 
     return ROLE_SYSTEM_CLIENT;
@@ -147,8 +156,7 @@ public:
         return E_NOTIMPL;
     }
 
-    HRESULT STDMETHODCALLTYPE Invoke(DISPID, REFIID, LCID, WORD, DISPPARAMS*, VARIANT*, EXCEPINFO*,
-                                    UINT*) override {
+    HRESULT STDMETHODCALLTYPE Invoke(DISPID, REFIID, LCID, WORD, DISPPARAMS*, VARIANT*, EXCEPINFO*, UINT*) override {
         return E_NOTIMPL;
     }
 
@@ -496,8 +504,7 @@ public:
         return S_OK;
     }
 
-    HRESULT STDMETHODCALLTYPE accLocation(long* left, long* top, long* width, long* height,
-                                           VARIANT child) override {
+    HRESULT STDMETHODCALLTYPE accLocation(long* left, long* top, long* width, long* height, VARIANT child) override {
         const HRESULT valid = validate(child);
         if (FAILED(valid)) {
             return valid;
@@ -607,8 +614,8 @@ public:
         POINT point{x, y};
         ::ScreenToClient(host_->hwnd(), &point);
 
-        Widget* hit = host_->root()->hit_test(host_->dip(static_cast<float>(point.x)),
-                                              host_->dip(static_cast<float>(point.y)));
+        Widget* hit =
+            host_->root()->hit_test(host_->dip(static_cast<float>(point.x)), host_->dip(static_cast<float>(point.y)));
         if (hit == nullptr || hit->accessible_role() == Role::Panel) {
             child->vt = VT_I4;
             child->lVal = CHILDID_SELF;

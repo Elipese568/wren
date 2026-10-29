@@ -1,0 +1,46 @@
+# Wren 缁熶竴浠ｇ爜鏍煎紡銆傛彁浜ゅ墠鐢?.githooks/pre-commit 鑷姩搴旂敤銆?#
+# 鍩虹嚎鎺ヨ繎 Visual Studio 鐨?C++ 榛樿椋庢牸锛屽彧鎶婂ぇ鎷彿鏀规垚 Attach锛?# 涓庣幇鏈変唬鐮佷繚鎸佷竴鑷达紱鍏朵綑閿槸鏄惧紡鍐欏嚭鏉ラ伩鍏?clang-format 鐗堟湰鍗囩骇鎮勬倓鏀归鏍笺€?Language: Cpp
+BasedOnStyle: Microsoft
+Standard: c++20
+
+ColumnLimit: 120
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+AccessModifierOffset: -4
+BreakBeforeBraces: Attach
+PointerAlignment: Left
+ReferenceAlignment: Left
+DerivePointerAlignment: false
+IndentCaseLabels: true
+NamespaceIndentation: None
+FixNamespaceComments: true
+SortIncludes: false
+IncludeBlocks: Preserve
+MaxEmptyLinesToKeep: 1
+KeepEmptyLinesAtTheStartOfBlocks: false
+
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLambdasOnASingleLine: All
+AllowShortLoopsOnASingleLine: false
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: true
+BreakTemplateDeclarations: Yes
+BreakStringLiterals: true
+AlignAfterOpenBracket: Align
+AlignOperands: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignTrailingComments: true
+PenaltyReturnTypeOnItsOwnLine: 60
+SpaceAfterCStyleCast: false
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyBlock: false
+SpacesBeforeTrailingComments: 2
