@@ -558,6 +558,9 @@ void Host::render(HDC dc) {
     }
 
     Canvas& canvas = hardware ? *hardware_canvas_ : frame_->canvas();
+    // 两种画布都必须挂上文字度量后端：硬件画布没有 Gdiplus::Graphics，一旦
+    // TextView 的换行走 GDI+ 度量就会在空指针上 MeasureString（真机崩过）。
+    canvas.set_text_metrics(&text_engine_);
 
     canvas.set_defer_text(true);
     canvas.clear_text_commands();

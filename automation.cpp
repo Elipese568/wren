@@ -237,7 +237,7 @@ public:
             return valid;
         }
 
-        if (child_ == 0) {
+        if (effective_child(child) == 0) {
             if (host_ == nullptr || host_->hwnd() == nullptr) {
                 return S_FALSE;
             }
@@ -247,7 +247,7 @@ public:
             return return_bstr(title, name);
         }
 
-        const Host::AccessibleEntry current = entry();
+        const Host::AccessibleEntry current = entry_for(child);
         if (current.widget == nullptr) {
             return S_FALSE;
         }
@@ -261,11 +261,11 @@ public:
             return valid;
         }
 
-        if (child_ == 0) {
+        if (effective_child(child) == 0) {
             return S_FALSE;
         }
 
-        const Host::AccessibleEntry current = entry();
+        const Host::AccessibleEntry current = entry_for(child);
         if (current.widget == nullptr) {
             return S_FALSE;
         }
@@ -301,12 +301,12 @@ public:
 
         ::VariantInit(role);
         role->vt = VT_I4;
-        if (child_ == 0) {
+        if (effective_child(child) == 0) {
             role->lVal = ROLE_SYSTEM_PANE;
             return S_OK;
         }
 
-        const Host::AccessibleEntry current = entry();
+        const Host::AccessibleEntry current = entry_for(child);
         if (current.widget == nullptr) {
             return S_FALSE;
         }
@@ -327,12 +327,12 @@ public:
 
         ::VariantInit(state);
         state->vt = VT_I4;
-        if (child_ == 0) {
+        if (effective_child(child) == 0) {
             state->lVal = 0;
             return S_OK;
         }
 
-        const Host::AccessibleEntry current = entry();
+        const Host::AccessibleEntry current = entry_for(child);
         if (current.widget == nullptr) {
             return S_FALSE;
         }
@@ -472,7 +472,7 @@ public:
             return valid;
         }
 
-        if (child_ == 0) {
+        if (effective_child(child) == 0) {
             if (action != nullptr) {
                 *action = nullptr;
             }
@@ -480,7 +480,7 @@ public:
             return S_FALSE;
         }
 
-        const Host::AccessibleEntry current = entry();
+        const Host::AccessibleEntry current = entry_for(child);
         if (current.widget == nullptr) {
             return S_FALSE;
         }
@@ -498,7 +498,7 @@ public:
             return valid;
         }
 
-        const Host::AccessibleEntry current = entry();
+        const Host::AccessibleEntry current = entry_for(child);
         if (current.widget == nullptr || host_ == nullptr) {
             return S_FALSE;
         }
@@ -531,13 +531,13 @@ public:
         }
 
         RectF bounds;
-        if (child_ == 0) {
+        if (effective_child(child) == 0) {
             bounds = {0.0f, 0.0f, static_cast<float>(host_->client_width_px()),
                       static_cast<float>(host_->client_height_px())};
             bounds.width = host_->dip(bounds.width);
             bounds.height = host_->dip(bounds.height);
         } else {
-            const Host::AccessibleEntry current = entry();
+            const Host::AccessibleEntry current = entry_for(child);
             if (current.widget == nullptr) {
                 return S_FALSE;
             }
@@ -658,11 +658,11 @@ public:
             return valid;
         }
 
-        if (child_ == 0) {
+        if (effective_child(child) == 0) {
             return S_FALSE;
         }
 
-        const Host::AccessibleEntry current = entry();
+        const Host::AccessibleEntry current = entry_for(child);
         if (current.widget == nullptr) {
             return S_FALSE;
         }
@@ -683,6 +683,40 @@ public:
     HRESULT STDMETHODCALLTYPE put_accValue(VARIANT, BSTR) override { return E_NOTIMPL; }
 
 private:
+    /// 子对象自身（child_ != 0）或根对象上的简单子 id（`get_accName(1)` 这类调用）。
+    /// MSAA 允许两种形式；只认前一种会让 UIA 的 MSAA 桥枚举不到任何子元素。
+    [[nodiscard]] int effective_child(const VARIANT& child) const {
+        if (child_ != 0) {
+            return child_;
+        }
+
+        if (child.vt != VT_I4) {
+            return 0;
+        }
+
+        return static_cast<int>(child.lVal);
+    }
+
+    [[nodiscard]] Host::AccessibleEntry entry_for(const VARIANT& child) const {
+        Host::AccessibleEntry result;
+        if (host_ == nullptr) {
+            return result;
+        }
+
+        const int id = effective_child(child);
+        if (id <= 0) {
+            return result;
+        }
+
+        const auto entries = host_->accessible_entries();
+        const size_t index = static_cast<size_t>(id - 1);
+        if (index < entries.size()) {
+            result = entries[index];
+        }
+
+        return result;
+    }
+
     Host::AccessibleEntry entry() const {
         Host::AccessibleEntry result;
         if (host_ == nullptr || child_ <= 0) {
@@ -720,7 +754,13 @@ private:
         }
 
         if (child_ == 0) {
-            return child.lVal == CHILDID_SELF ? S_OK : E_INVALIDARG;
+            if (child.lVal == CHILDID_SELF) {
+                return S_OK;
+            }
+
+            const long count =
+                host_ != nullptr ? static_cast<long>(host_->accessible_entries().size()) : 0;
+            return (child.lVal >= 1 && child.lVal <= count) ? S_OK : E_INVALIDARG;
         }
 
         return (child.lVal == CHILDID_SELF || child.lVal == child_) ? S_OK : E_INVALIDARG;

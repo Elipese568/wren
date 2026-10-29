@@ -201,10 +201,13 @@ void Button::paint(Canvas& canvas) {
     }
 
     canvas.fill_round_rect(bounds, current.radius_control, background);
-    if (!primary_) {
+    // 禁用态没有「强调」可言：主按钮禁用时还留强调色描边，看起来像拿得到焦点。
+    if (!enabled) {
         canvas.stroke_round_rect(bounds, current.radius_control, current.control_border, 1.0f);
-    } else {
+    } else if (primary_) {
         canvas.stroke_round_rect(bounds, current.radius_control, current.accent.mix(Color::white(), 0.20f), 1.0f);
+    } else {
+        canvas.stroke_round_rect(bounds, current.radius_control, current.control_border, 1.0f);
     }
 
     RectF text_rect{bounds.x + 8.0f, bounds.y, std::max(0.0f, bounds.width - 16.0f), bounds.height};
