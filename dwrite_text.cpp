@@ -4,7 +4,7 @@
 #include <cmath>
 #include <utility>
 
-namespace msixpkg::ui {
+namespace wren {
 namespace {
 
 DWRITE_TEXT_ALIGNMENT to_alignment(TextAlign align) {
@@ -329,4 +329,4 @@ float DirectWriteText::line_height(const TextStyle& style, float dpi) {
     return value;
 }
 
-}  // namespace msixpkg::ui
+}  // namespace wren

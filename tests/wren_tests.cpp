@@ -1,4 +1,4 @@
-﻿// 框架里不依赖 HWND 的纯逻辑测试：换行、滚动条几何、颜色、命中测试。
+// 框架里不依赖 HWND 的纯逻辑测试：换行、滚动条几何、颜色、命中测试。
 //
 // 这些是截图回归之前最便宜的一道闸：换行算法错了会表现为「行数对不上、滚动范围
 // 不对」，肉眼很难从一张 PNG 上看出来。运行方式见 gui/ui/README.md。
@@ -33,7 +33,7 @@ float measure_eight(std::wstring_view text) {
 }
 
 void test_wrap() {
-    using namespace msixpkg::ui;
+    using namespace wren;
 
     {
         const auto lines = wrap_text(L"hello world foo", 90.0f, measure_eight);
@@ -83,7 +83,7 @@ void test_wrap() {
 }
 
 void test_scrollbar() {
-    using namespace msixpkg::ui;
+    using namespace wren;
 
     const RectF area{0.0f, 0.0f, 100.0f, 100.0f};
 
@@ -114,7 +114,7 @@ void test_scrollbar() {
 }
 
 void test_geometry_and_color() {
-    using namespace msixpkg::ui;
+    using namespace wren;
 
     const RectF rect{10.0f, 20.0f, 100.0f, 40.0f};
     check(rect.contains(10.0f, 20.0f), "rect contains top-left");

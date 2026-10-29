@@ -17,7 +17,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace msixpkg::ui {
+namespace wren {
 
 class DirectWriteText final : public TextMetrics {
 public:
@@ -68,4 +68,4 @@ private:
     bool owns_draw_ = true;  ///< begin_draw=false 时由 presenter 负责 BeginDraw/EndDraw
 };
 
-}  // namespace msixpkg::ui
+}  // namespace wren

@@ -3,7 +3,7 @@
 #include "host.h"
 #include "theme.h"
 
-namespace msixpkg::ui {
+namespace wren {
 
 uint32_t Widget::accessible_state() const {
     uint32_t state = 0;
@@ -149,4 +149,4 @@ void attach_host(Widget& root, Host* host) {
     }
 }
 
-}  // namespace msixpkg::ui
+}  // namespace wren

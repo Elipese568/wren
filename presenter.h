@@ -1,6 +1,6 @@
 #pragma once
 
-// 帧 → 窗口的呈现方式（docs/self-drawn-ui-framework.md §3.2 / §4.5）。
+// 帧 → 窗口的呈现方式（docs/design.md §3.2 / §4.5）。
 //
 // GdiPresenter 是兼容路径：普通窗口 + 重定向位图 + GDI+ SourceCopy，不受
 // 垂直同步约束，撕裂只能靠人眼看不见；LayeredPresenter 是 Acrylic 的备选；
@@ -15,7 +15,7 @@
 
 #include <memory>
 
-namespace msixpkg::ui {
+namespace wren {
 
 enum class PresenterKind { Gdi, Gpu, Layered };
 
@@ -68,4 +68,4 @@ std::unique_ptr<Presenter> make_layered_presenter(HWND hwnd);
 /// 由调用方退回 GDI。成功返回时已经完成 device/swapchain 的创建。
 std::unique_ptr<Presenter> make_gpu_presenter(HWND hwnd, int width_px, int height_px);
 
-}  // namespace msixpkg::ui
+}  // namespace wren

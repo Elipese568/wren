@@ -10,7 +10,7 @@
 #include <cstring>
 #include <utility>
 
-namespace msixpkg::ui {
+namespace wren {
 namespace {
 
 constexpr float kPadding = 8.0f;
@@ -1057,4 +1057,4 @@ bool Table::on_key(const KeyEvent& event) {
     }
 }
 
-}  // namespace msixpkg::ui
+}  // namespace wren

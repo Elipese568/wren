@@ -12,7 +12,7 @@
 #include <string_view>
 #include <vector>
 
-namespace msixpkg::ui {
+namespace wren {
 
 struct WrappedLine {
     std::wstring text;
@@ -28,4 +28,4 @@ std::vector<WrappedLine> wrap_text(std::wstring_view text, float max_width, cons
 /// 是否为可以逐字断行的 CJK 字符（含全角标点、假名、谚文）。
 bool is_breakable_cjk(wchar_t c);
 
-}  // namespace msixpkg::ui
+}  // namespace wren

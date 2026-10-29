@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace msixpkg::ui {
+namespace wren {
 namespace {
 
 bool is_space(wchar_t c) {
@@ -126,4 +126,4 @@ std::vector<WrappedLine> wrap_text(std::wstring_view text, float max_width, cons
     return lines;
 }
 
-}  // namespace msixpkg::ui
+}  // namespace wren

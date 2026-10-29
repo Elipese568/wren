@@ -1,21 +1,31 @@
-# 自绘 UI 框架的独立构建（docs/self-drawn-ui-framework.md §2.2）。
+# Wren —— 小型自绘 UI 框架。
 #
-# 这里刻意做成可独立配置的 CMake 工程：框架 + demo 不依赖 msixpkg_core，
-# 方便在没有引擎/没有 WinUI 的机器上单独跑起来验证渲染、材质与 MSAA。
-# 后续接入安装器时，把 msixpkg_selfdrawn_ui 的源码加进 gui.cmake 即可，
-# 或者从上层 add_subdirectory 本目录。
+# 单 HWND、retained-mode：控件自己画形状与文字，Host 负责焦点/键盘/DPI/MSAA/
+# 呈现。默认 D2D 直接画进 DirectComposition 交换链（GPU），D2D 不可用时退回
+# GDI+ 整帧 DIB。框架、demo、纯逻辑单测都可以独立配置构建，不依赖宿主工程。
+#
+# 独立构建：
+#   cmake -S . -B build -G "Visual Studio 18 2026" -A x64
+#   cmake --build build --config Debug
+#
+# 作为 submodule 接入宿主工程：
+#   add_subdirectory(<wren 目录>)
+#   target_link_libraries(<你的目标> PRIVATE Wren::wren)
+
+cmake_minimum_required(VERSION 3.25)
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-  cmake_minimum_required(VERSION 3.25)
-  project(MsixpkgSelfDrawnUi LANGUAGES CXX)
-  set(CMAKE_CXX_STANDARD 20)
-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
-  set(CMAKE_CXX_EXTENSIONS OFF)
+  project(Wren VERSION 0.1.0 LANGUAGES CXX)
+  set(WREN_TOPLEVEL ON)
+else()
+  set(WREN_TOPLEVEL OFF)
 endif()
 
-option(MSIXPKG_UI_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
+option(WREN_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
+option(WREN_BUILD_DEMO "Build the Wren demo application" ${WREN_TOPLEVEL})
+option(WREN_BUILD_TESTS "Build the Wren unit tests" ${WREN_TOPLEVEL})
 
-set(MSIXPKG_UI_SOURCES
+set(WREN_SOURCES
   canvas.cpp
   text_layout.cpp
   theme.cpp
@@ -29,16 +39,18 @@ set(MSIXPKG_UI_SOURCES
   automation.cpp
 )
 
-add_library(msixpkg_selfdrawn_ui STATIC ${MSIXPKG_UI_SOURCES})
+add_library(wren STATIC ${WREN_SOURCES})
+add_library(Wren::wren ALIAS wren)
 
-target_include_directories(msixpkg_selfdrawn_ui PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
-target_compile_definitions(msixpkg_selfdrawn_ui PUBLIC UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
-target_compile_options(msixpkg_selfdrawn_ui PRIVATE /utf-8 /W4 /permissive- /EHsc /Zc:__cplusplus)
+target_include_directories(wren PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
+target_compile_features(wren PUBLIC cxx_std_20)
+target_compile_definitions(wren PUBLIC UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
+target_compile_options(wren PRIVATE /utf-8 /W4 /permissive- /EHsc /Zc:__cplusplus)
 
-# gdiplus：帧与形状；d2d1/dwrite：灰度文字；d3d11/dxgi：flip-model 上屏；
-# dwmapi：材质/深色/圆角；oleacc：LresultFromObject；oleaut32：SysAllocString；
-# advapi32：主题/强调色注册表。
-target_link_libraries(msixpkg_selfdrawn_ui PUBLIC
+# gdiplus：帧与形状；d2d1/dwrite：灰度文字与 D2D 绘制；d3d11/dxgi/dcomp：组合交换链；
+# dwmapi：材质/深色标题栏/圆角；oleacc：LresultFromObject；oleaut32：SysAllocString；
+# advapi32：主题与强调色注册表。
+target_link_libraries(wren PUBLIC
   gdiplus
   d2d1
   dwrite
@@ -54,30 +66,35 @@ target_link_libraries(msixpkg_selfdrawn_ui PUBLIC
   advapi32
 )
 
-if(MSIXPKG_UI_WARNINGS_AS_ERRORS)
-  target_compile_options(msixpkg_selfdrawn_ui PRIVATE /WX)
+if(WREN_WARNINGS_AS_ERRORS)
+  target_compile_options(wren PRIVATE /WX)
 endif()
 
 # ---- demo ----
-add_executable(msixpkg_ui_demo WIN32 demo/self_drawn_demo.cpp)
-target_link_libraries(msixpkg_ui_demo PRIVATE msixpkg_selfdrawn_ui)
-target_compile_options(msixpkg_ui_demo PRIVATE /utf-8 /W4 /permissive- /EHsc /Zc:__cplusplus)
-set_target_properties(msixpkg_ui_demo PROPERTIES OUTPUT_NAME "msixpkg-ui-demo")
+if(WREN_BUILD_DEMO)
+  add_executable(wren_demo WIN32 demo/wren_demo.cpp)
+  target_link_libraries(wren_demo PRIVATE wren)
+  target_compile_options(wren_demo PRIVATE /utf-8 /W4 /permissive- /EHsc /Zc:__cplusplus)
+  set_target_properties(wren_demo PROPERTIES OUTPUT_NAME "wren-demo")
 
-if(MSIXPKG_UI_WARNINGS_AS_ERRORS)
-  target_compile_options(msixpkg_ui_demo PRIVATE /WX)
+  if(WREN_WARNINGS_AS_ERRORS)
+    target_compile_options(wren_demo PRIVATE /WX)
+  endif()
 endif()
 
 # ---- 纯逻辑测试（不需要窗口） ----
-add_executable(msixpkg_ui_tests tests/ui_tests.cpp)
-target_link_libraries(msixpkg_ui_tests PRIVATE msixpkg_selfdrawn_ui)
-target_compile_options(msixpkg_ui_tests PRIVATE /utf-8 /W4 /permissive- /EHsc /Zc:__cplusplus)
+if(WREN_BUILD_TESTS)
+  add_executable(wren_tests tests/wren_tests.cpp)
+  target_link_libraries(wren_tests PRIVATE wren)
+  target_compile_options(wren_tests PRIVATE /utf-8 /W4 /permissive- /EHsc /Zc:__cplusplus)
+  set_target_properties(wren_tests PROPERTIES OUTPUT_NAME "wren-tests")
 
-if(MSIXPKG_UI_WARNINGS_AS_ERRORS)
-  target_compile_options(msixpkg_ui_tests PRIVATE /WX)
-endif()
+  if(WREN_WARNINGS_AS_ERRORS)
+    target_compile_options(wren_tests PRIVATE /WX)
+  endif()
 
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-  enable_testing()
-  add_test(NAME ui COMMAND msixpkg_ui_tests)
+  if(WREN_TOPLEVEL)
+    enable_testing()
+    add_test(NAME wren COMMAND wren_tests)
+  endif()
 endif()

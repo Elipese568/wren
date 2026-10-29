@@ -3,7 +3,7 @@
 #include <Windows.h>
 #include <dwmapi.h>
 
-namespace msixpkg::ui {
+namespace wren {
 namespace {
 
 // DWM 属性号写死而不是用 SDK 枚举：这些值从 Windows 10 到 11 一直稳定，
@@ -192,4 +192,4 @@ const wchar_t* material_name(MaterialKind kind) {
     return L"Solid";
 }
 
-}  // namespace msixpkg::ui
+}  // namespace wren

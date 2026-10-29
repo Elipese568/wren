@@ -1,6 +1,6 @@
 #pragma once
 
-// 单 HWND 的宿主（docs/self-drawn-ui-framework.md §2.3 / §3）。
+// 单 HWND 的宿主（docs/design.md §2.3 / §3）。
 //
 // Host 拥有窗口、帧、材质、呈现器、焦点和 MSAA 根对象。它只处理窗口级消息：
 // WM_PAINT、鼠标/键盘、WM_DPICHANGED、WM_GETOBJECT、WM_TIMER。业务逻辑
@@ -22,7 +22,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace msixpkg::ui {
+namespace wren {
 
 /// 一帧的耗时统计。presenter=GPU 时 interval 应当贴着刷新周期，
 /// GDI 路径则会出现 BitBlt 与 WM_TIMER 造成的抖动。
@@ -40,8 +40,8 @@ struct FrameStats {
 };
 
 struct HostOptions {
-    std::wstring title = L"Msixpkg";
-    std::wstring window_class = L"MsixpkgSelfDrawnHost";
+    std::wstring title = L"Wren";
+    std::wstring window_class = L"WrenHostWindow";
     int width_dip = 720;
     int height_dip = 480;
     Appearance appearance = Appearance::Auto;
@@ -205,4 +205,4 @@ private:
     int accessibility_requests_ = 0;
 };
 
-}  // namespace msixpkg::ui
+}  // namespace wren

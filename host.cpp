@@ -16,7 +16,7 @@
 #include <utility>
 #include <vector>
 
-namespace msixpkg::ui {
+namespace wren {
 namespace {
 
 constexpr UINT_PTR kAnimationTimer = 1;
@@ -26,7 +26,7 @@ enum class PresenterPreference { Auto, Gdi, Gpu, Layered };
 
 PresenterPreference presenter_preference() {
     wchar_t value[64]{};
-    const DWORD length = ::GetEnvironmentVariableW(L"MSIXPKG_UI_PRESENTER", value,
+    const DWORD length = ::GetEnvironmentVariableW(L"WREN_PRESENTER", value,
                                                    static_cast<DWORD>(std::size(value)));
     if (length == 0) {
         return PresenterPreference::Auto;
@@ -1369,4 +1369,4 @@ LRESULT Host::handle(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
     return ::DefWindowProcW(hwnd, message, wparam, lparam);
 }
 
-}  // namespace msixpkg::ui
+}  // namespace wren

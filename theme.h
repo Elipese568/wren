@@ -1,6 +1,6 @@
 #pragma once
 
-// 主题 token（docs/self-drawn-ui-framework.md §5.5）。
+// 主题 token（docs/design.md §5.5）。
 //
 // Theme 只放颜色/字号/圆角，不放控件逻辑。Widget 从 Host::theme() 拿当前主题；
 // 材质是否可见（Mica/Acrylic vs Solid）会改变卡片的透明度 —— 这也是这里
@@ -8,7 +8,7 @@
 
 #include "canvas.h"
 
-namespace msixpkg::ui {
+namespace wren {
 
 enum class Appearance {
     Auto = 0,
@@ -68,4 +68,4 @@ bool remote_session();
 /// 系统强调色（注册表 AccentColor，失败回退 #0078D4）。
 Color system_accent();
 
-}  // namespace msixpkg::ui
+}  // namespace wren

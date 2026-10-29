@@ -7,7 +7,7 @@
 
 #include <cstring>
 
-namespace msixpkg::ui {
+namespace wren {
 namespace {
 
 using Microsoft::WRL::ComPtr;
@@ -519,4 +519,4 @@ std::unique_ptr<Presenter> make_gpu_presenter(HWND hwnd, int width_px, int heigh
     return presenter;
 }
 
-}  // namespace msixpkg::ui
+}  // namespace wren

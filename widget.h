@@ -1,6 +1,6 @@
 #pragma once
 
-// Widget 基类与面板（docs/self-drawn-ui-framework.md §2.3 / §5）。
+// Widget 基类与面板（docs/design.md §2.3 / §5）。
 //
 // 树是**单 HWND** 的：没有子窗口，所以「布局」就是给每个 Widget 一个绝对
 // 矩形；「焦点」就是 Host 维护的一个 Widget*。Panel 只做三件事：容纳子节点、
@@ -15,12 +15,12 @@
 #include <utility>
 #include <vector>
 
-namespace msixpkg::ui {
+namespace wren {
 
 class Host;
 struct Theme;
 
-// 位掩码与 docs/self-drawn-ui-framework.md §2.3 一致，后两位是本实现补的。
+// 位掩码与 docs/design.md §2.3 一致，后两位是本实现补的。
 inline constexpr uint32_t kStateFocusable = 1u << 0;
 inline constexpr uint32_t kStateFocused = 1u << 1;
 inline constexpr uint32_t kStateDisabled = 1u << 2;
@@ -143,4 +143,4 @@ private:
 /// 把 root 及其所有后代挂到 host 上（invalidate/focus/主题分发都靠这个指针）。
 void attach_host(Widget& root, Host* host);
 
-}  // namespace msixpkg::ui
+}  // namespace wren

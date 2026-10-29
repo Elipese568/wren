@@ -1,6 +1,6 @@
 #pragma once
 
-// 控件集（docs/self-drawn-ui-framework.md §5.2）。
+// 控件集（docs/design.md §5.2）。
 //
 // 全部是 Widget：没有子 HWND。Label/Button/Checkbox/ProgressBar 是简单叶子；
 // TextView/Table 自己维护滚动模型，共用同一套自绘滚动条几何（ScrollBarMetrics）。
@@ -13,7 +13,7 @@
 #include <string_view>
 #include <vector>
 
-namespace msixpkg::ui {
+namespace wren {
 
 // ---- 自绘滚动条：TextView / Table 共用 ----
 struct ScrollBarMetrics {
@@ -210,4 +210,4 @@ private:
     std::function<void(int)> on_selection_changed_;
 };
 
-}  // namespace msixpkg::ui
+}  // namespace wren

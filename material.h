@@ -1,6 +1,6 @@
 #pragma once
 
-// 窗口背景材质（docs/self-drawn-ui-framework.md §4）。
+// 窗口背景材质（docs/design.md §4）。
 //
 // 三种材质只负责「让窗口后面透出什么」：
 //   Mica    —— Win11 26100+，属性 38 + 39 + 扩展边框；
@@ -13,7 +13,7 @@
 
 #include <memory>
 
-namespace msixpkg::ui {
+namespace wren {
 
 enum class MaterialKind { Solid, Acrylic, Mica };
 enum class MaterialPreference { Auto, Solid, Acrylic, Mica };
@@ -34,4 +34,4 @@ void apply_dark_title_bar(HWND hwnd, bool dark);
 
 const wchar_t* material_name(MaterialKind kind);
 
-}  // namespace msixpkg::ui
+}  // namespace wren

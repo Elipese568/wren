@@ -4,7 +4,7 @@
 #include <cmath>
 #include <initializer_list>
 
-namespace msixpkg::ui {
+namespace wren {
 namespace {
 
 Gdiplus::RectF to_gdiplus(const RectF& rect) {
@@ -816,4 +816,4 @@ void Frame::clear_transparent() {
     graphics.FillRectangle(&transparent, 0, 0, width_px_, height_px_);
 }
 
-}  // namespace msixpkg::ui
+}  // namespace wren

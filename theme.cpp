@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace msixpkg::ui {
+namespace wren {
 namespace {
 
 bool read_dword(HKEY root, const wchar_t* path, const wchar_t* name, DWORD& value) {
@@ -186,4 +186,4 @@ Theme make_theme(Appearance appearance, bool material_visible) {
     return theme;
 }
 
-}  // namespace msixpkg::ui
+}  // namespace wren

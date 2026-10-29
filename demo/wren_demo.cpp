@@ -1,4 +1,4 @@
-// 自绘 UI 框架 demo（docs/self-drawn-ui-framework.md §8.1 的 spike 产物）。
+// 自绘 UI 框架 demo（docs/design.md §8.1 的 spike 产物）。
 //
 // 这个程序不是安装器，而是把框架的每条路径都走一遍：
 //   - 720x480 之外的固定尺寸（760x620）+ 绝对布局；
@@ -31,7 +31,7 @@
 
 namespace {
 
-using namespace msixpkg::ui;
+using namespace wren;
 
 std::string to_utf8(const std::wstring& value) {
     if (value.empty()) {
@@ -279,7 +279,7 @@ void write_report(Host& host, const std::wstring& path) {
         content += L"\n";
     };
 
-    line(L"Msixpkg self-drawn UI demo report");
+    line(L"Wren demo report");
     line(L"appearance=" + std::wstring(appearance_name(host.appearance())));
     line(L"material=" + std::wstring(material_name(host.material_kind())));
     line(L"presenter=" + std::wstring(host.presenter_name()));
@@ -437,7 +437,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     const Settings settings = parse_settings();
 
     if (!settings.presenter.empty()) {
-        ::SetEnvironmentVariableW(L"MSIXPKG_UI_PRESENTER", settings.presenter.c_str());
+        ::SetEnvironmentVariableW(L"WREN_PRESENTER", settings.presenter.c_str());
     }
 
     const Theme base = make_theme(Appearance::Light, false);
@@ -585,8 +585,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
 
     // ---- Host ----
     HostOptions options;
-    options.title = L"Msixpkg 自绘 UI 框架 · Demo";
-    options.window_class = L"MsixpkgSelfDrawnDemoWindow";
+    options.title = L"Wren 自绘 UI 框架 · Demo";
+    options.window_class = L"WrenDemoWindow";
     options.width_dip = 760;
     options.height_dip = 620;
     options.material = MaterialPreference::Auto;

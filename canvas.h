@@ -1,6 +1,6 @@
 #pragma once
 
-// 自绘 UI 框架的绘图后端（docs/self-drawn-ui-framework.md §3）。
+// 自绘 UI 框架的绘图后端（docs/design.md §3）。
 //
 // 这里是全框架**唯一**接触 GDI+ 的地方：上层只看到 RectF / Color / TextStyle 和
 // Canvas 的绘制动词。将来换 D2D 时只需要另一个 Canvas 实现，Widget 不用动。
@@ -24,7 +24,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace msixpkg::ui {
+namespace wren {
 
 struct RectF {
     float x = 0.0f;
@@ -233,4 +233,4 @@ private:
     std::unique_ptr<Canvas> canvas_;
 };
 
-}  // namespace msixpkg::ui
+}  // namespace wren

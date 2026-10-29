@@ -1,6 +1,6 @@
 #include "presenter.h"
 
-namespace msixpkg::ui {
+namespace wren {
 namespace {
 
 class GdiPresenter final : public Presenter {
@@ -73,4 +73,4 @@ std::unique_ptr<Presenter> make_layered_presenter(HWND hwnd) {
     return std::make_unique<LayeredPresenter>(hwnd);
 }
 
-}  // namespace msixpkg::ui
+}  // namespace wren

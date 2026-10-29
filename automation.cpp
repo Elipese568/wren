@@ -12,7 +12,7 @@
 #include <iterator>
 #include <string>
 
-namespace msixpkg::ui {
+namespace wren {
 namespace {
 
 long msaa_role(Role role) {
@@ -716,4 +716,4 @@ AccessiblePtr create_accessibility_root(Host* host) {
     return AccessiblePtr(new AccessibleObject(host, 0));
 }
 
-}  // namespace msixpkg::ui
+}  // namespace wren
