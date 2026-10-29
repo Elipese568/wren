@@ -136,10 +136,8 @@ void Label::paint(Canvas& canvas) {
     canvas.draw_text(text, bounds, style_, color);
 }
 
-Widget* Label::hit_test(float x, float y) {
-    (void)x;
-    (void)y;
-    return nullptr;  // 静态文本不参与命中，点击落到下面的 Panel
+Widget* Label::hit_test([[maybe_unused]] float x, [[maybe_unused]] float y) {
+    return nullptr;
 }
 
 // ============================================================================
@@ -399,7 +397,7 @@ uint32_t Checkbox::accessible_state() const {
 // ============================================================================
 
 ProgressBar::ProgressBar() {
-    // 与现有 ControlSpec 的 WS_TABSTOP 行为一致：进度条也进焦点链，UIA 暴露百分比。
+    // 进焦点链，UIA 才能报告百分比。
     tab_stop = true;
 }
 
@@ -530,8 +528,7 @@ float TextView::max_scroll() const {
 }
 
 void TextView::relayout(Canvas& canvas) {
-    // 行高至少给字号 1.35 倍：GDI+ 的 DrawString 在矩形高度小于字体行高时
-    // 会整行裁掉（不是压扁），所以这里的余量是功能性需求，不是审美。
+    // 行高留 1.35 倍余量：矩形矮于字体行高时文本会被整行裁掉。
     line_height_ = std::max(canvas.line_height(style_), style_.size * 1.35f);
     line_height_ = std::max(line_height_, 1.0f);
     const float viewport = std::max(0.0f, bounds.height - kPadding * 2.0f);
@@ -728,7 +725,10 @@ void TextView::copy_all() {
         if (void* target = ::GlobalLock(memory); target != nullptr) {
             std::memcpy(target, data.c_str(), bytes);
             ::GlobalUnlock(memory);
-            ::SetClipboardData(CF_UNICODETEXT, memory);
+            // 写入成功后内存归系统，失败时仍归本进程。
+            if (::SetClipboardData(CF_UNICODETEXT, memory) == nullptr) {
+                ::GlobalFree(memory);
+            }
         } else {
             ::GlobalFree(memory);
         }
@@ -867,7 +867,6 @@ void Table::paint(Canvas& canvas) {
     const RectF content{bounds.x + 1.0f, bounds.y + 1.0f, std::max(0.0f, bounds.width - 2.0f),
                         std::max(0.0f, bounds.height - 2.0f)};
 
-    // 表头
     if (content.width > 0.0f) {
         canvas.push_clip({content.x, content.y, content.width, header_height()});
         canvas.fill_rect({content.x, content.y, content.width, header_height()}, current.table_header);

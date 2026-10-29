@@ -77,13 +77,18 @@ DWORD msaa_state(uint32_t state) {
     return result;
 }
 
-HRESULT return_bstr(const std::wstring& value, BSTR* out) {
+[[nodiscard]] HRESULT return_bstr(const std::wstring& value, BSTR* out) {
     if (out == nullptr) {
         return E_INVALIDARG;
     }
 
-    *out = value.empty() ? nullptr : ::SysAllocString(value.c_str());
-    return value.empty() ? S_FALSE : S_OK;
+    if (value.empty()) {
+        *out = nullptr;
+        return S_FALSE;
+    }
+
+    *out = ::SysAllocString(value.c_str());
+    return *out != nullptr ? S_OK : E_OUTOFMEMORY;
 }
 
 }  // namespace
@@ -105,14 +110,16 @@ public:
         }
 
         *object = nullptr;
-        if (::IsEqualIID(riid, IID_IUnknown) || ::IsEqualIID(riid, IID_IDispatch) ||
-            ::IsEqualIID(riid, IID_IAccessible)) {
+        if (::IsEqualIID(riid, IID_IUnknown) || ::IsEqualIID(riid, IID_IAccessible)) {
             *object = static_cast<IAccessible*>(this);
-            AddRef();
-            return S_OK;
+        } else if (::IsEqualIID(riid, IID_IDispatch)) {
+            *object = static_cast<IDispatch*>(this);
+        } else {
+            return E_NOINTERFACE;
         }
 
-        return E_NOINTERFACE;
+        AddRef();
+        return S_OK;
     }
 
     ULONG STDMETHODCALLTYPE AddRef() override { return ++references_; }
@@ -177,8 +184,13 @@ public:
             return S_FALSE;
         }
 
-        return ::AccessibleObjectFromWindow(host_->hwnd(), OBJID_WINDOW, IID_IAccessible,
-                                            reinterpret_cast<void**>(parent));
+        void* accessible = nullptr;
+        const HRESULT result = ::AccessibleObjectFromWindow(host_->hwnd(), OBJID_WINDOW, IID_IAccessible, &accessible);
+        if (SUCCEEDED(result) && accessible != nullptr) {
+            *parent = static_cast<IDispatch*>(static_cast<IAccessible*>(accessible));
+        }
+
+        return result;
     }
 
     HRESULT STDMETHODCALLTYPE get_accChildCount(long* count) override {
@@ -702,7 +714,7 @@ private:
         return current.widget->accessible_name();
     }
 
-    HRESULT validate(const VARIANT& child) const {
+    [[nodiscard]] HRESULT validate(const VARIANT& child) const {
         if (child.vt != VT_I4) {
             return E_INVALIDARG;
         }

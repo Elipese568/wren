@@ -1,12 +1,4 @@
-// 自绘 UI 框架 demo（docs/design.md §8.1 的 spike 产物）。
-//
-// 这个程序不是安装器，而是把框架的每条路径都走一遍：
-//   - 720x480 之外的固定尺寸（760x620）+ 绝对布局；
-//   - Label / Button / Checkbox / ProgressBar / TextView / Table 全部控件；
-//   - Tab 焦点链、Enter 默认按钮、Esc 关闭、Space 切换、表格方向键、Ctrl+A/C；
-//   - 浅色/深色切换、Mica/Acrylic/Solid 材质切换、DPI 跟随；
-//   - --report：通过 OBJID_CLIENT 真正走一遍 WM_GETOBJECT + MSAA，把子对象
-//     的数量/名字/角色/状态写进文件，用于无人值守验证。
+// Wren demo：把框架的每条路径走一遍（全部控件、焦点链、主题/材质切换、MSAA 报告）。
 
 #include "controls.h"
 #include "host.h"
@@ -152,8 +144,7 @@ struct DemoApp {
 
         set_status(L"正在校验容器 …");
 
-        // 只在安装期间跑帧；空闲时窗口不重绘，CPU 占用回到 0。
-        // interval 0 = 每个合成器 tick 一帧；--fps 60 可以主动限到 60fps。
+        // 只在安装期间跑帧；interval 0 = 每个合成器 tick 一帧。
         if (host != nullptr) {
             host->set_animating(true, animation_interval_ms);
         }
@@ -227,8 +218,7 @@ struct DemoApp {
             return;
         }
 
-        // 用 QPC 而不是 GetTickCount64：180Hz 下一帧只有 5.5ms，后者的 15.6ms
-        // 粒度会让动画每帧步长在 0/15ms 之间跳。
+        // GetTickCount64 是 15.6ms 粒度，高刷新率下动画步长会跳；用 QPC。
         const auto now = std::chrono::steady_clock::now();
         const double dt = last_tick == std::chrono::steady_clock::time_point{}
                               ? 0.0
@@ -527,8 +517,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     app.table->set_selected_row(0, false);
 
     // ---- 证书详情 ----
-    // 外面套一张卡片：卡片是不透明表面，文字才能走 ClearType；直接贴在
-    // Mica 上的文字只能用灰度 AA。
     auto* details_card = root->emplace<Card>();
     details_card->bounds = {18.0f, 276.0f, 724.0f, 152.0f};
 
@@ -651,7 +639,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
         write_report(host, settings.report_path);
     }
 
-    // 一次性定时器：空闲时不跑动画，CPU 占用为 0。
     if (settings.auto_start) {
         host.schedule_once(700, [&app] { app.begin_install(); });
     }
@@ -666,6 +653,5 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
         });
     }
 
-    // run() 在有 vsync 句柄时按合成器节拍驱动动画；否则回到 WM_TIMER。
     return host.run();
 }

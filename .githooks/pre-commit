@@ -45,9 +45,13 @@ fi
 changed=""
 for file in $files; do
     [ -f "$file" ] || continue
+    before=$(git rev-parse ":$file" 2>/dev/null || true)
     "$formatter" -i --style=file "$file"
     git add -- "$file"
-    changed="$changed $file"
+    after=$(git rev-parse ":$file" 2>/dev/null || true)
+    if [ "$before" != "$after" ]; then
+        changed="$changed $file"
+    fi
 done
 
 if [ -n "$changed" ]; then

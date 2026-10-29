@@ -1,12 +1,8 @@
 #pragma once
 
 // 帧 → 窗口的呈现方式（docs/design.md §3.2 / §4.5）。
-//
-// GdiPresenter 是兼容路径：普通窗口 + 重定向位图 + GDI+ SourceCopy，不受
-// 垂直同步约束，撕裂只能靠人眼看不见；LayeredPresenter 是 Acrylic 的备选；
-// GpuPresenter 用 D3D11 + DirectComposition 的组合交换链（预乘 alpha）上屏，
-// 没有 BitBlt 撕裂。注意组合交换链的 Present 不做反压，所以「什么时候画下一帧」
-// 由 Host 用 DCompositionWaitForCompositorClock 等合成器时钟（compositor_paced）。
+// GPU 路径用 D3D11 + DirectComposition 组合交换链（预乘 alpha）；组合交换链的 Present
+// 不反压，所以出帧节奏由 Host 用合成器时钟驱动（compositor_paced）。
 
 #include "canvas.h"
 
@@ -41,9 +37,7 @@ public:
 
     virtual void present(const Frame& frame, HDC dc) = 0;
 
-    /// 非空的 D2D 设备上下文表示这个 presenter 能直接画硬件表面：
-    /// Host 用 Canvas(d2d_context) + DirectWriteText(bind) 画完后调 end_frame()，
-    /// 不再经过 DIB 和 staging 上传。
+    /// 非空的 D2D 设备上下文表示能直接画硬件表面：Host 用 Canvas(d2d_context) 而不是 DIB。
     virtual ID2D1DeviceContext* d2d_context() const { return nullptr; }
     /// true：组合交换链不会用 Present(1) 反压，Host 改用合成器时钟节拍。
     virtual bool compositor_paced() const { return false; }
@@ -53,8 +47,7 @@ public:
     }
     virtual void end_frame() {}
 
-    /// 非空表示由合成器的帧节拍驱动：Host::run 用这个句柄等下一帧，
-    /// 不再依赖 WM_TIMER（默认 15.6ms 粒度，本身就是卡顿来源之一）。
+    /// 非空表示由合成器节拍驱动；Host::run 用这个句柄等下一帧。
     virtual HANDLE frame_wait_handle() const { return nullptr; }
 
     /// 设备丢失等不可恢复状态。false 时 Host 会降级到 GDI 呈现。
@@ -64,8 +57,7 @@ public:
 std::unique_ptr<Presenter> make_gdi_presenter();
 std::unique_ptr<Presenter> make_layered_presenter(HWND hwnd);
 
-/// 失败（没有 D3D11、交换链不接受预乘 alpha、设备丢失）时返回 nullptr，
-/// 由调用方退回 GDI。成功返回时已经完成 device/swapchain 的创建。
+/// 失败返回 nullptr（无 D3D11 / 交换链不接受预乘 alpha / 设备丢失），调用方退回 GDI。
 std::unique_ptr<Presenter> make_gpu_presenter(HWND hwnd, int width_px, int height_px);
 
 }  // namespace wren

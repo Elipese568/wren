@@ -1,10 +1,7 @@
 #pragma once
 
-// Widget 基类与面板（docs/design.md §2.3 / §5）。
-//
-// 树是**单 HWND** 的：没有子窗口，所以「布局」就是给每个 Widget 一个绝对
-// 矩形；「焦点」就是 Host 维护的一个 Widget*。Panel 只做三件事：容纳子节点、
-// 把各自矩形画出来、把命中测试分派给子节点。
+// Widget 基类与 Panel（docs/design.md §2.3 / §5）。
+// 单 HWND 下没有子窗口：布局就是给每个 Widget 一个绝对矩形，焦点就是 Host 持有的一个 Widget*。
 
 #include "canvas.h"
 

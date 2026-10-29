@@ -1,11 +1,6 @@
 #pragma once
 
-// 只读文本的换行算法。TextView / Table / 多行 Label 共用。
-//
-// 为什么不用 GDI+ 自己的 DrawString 换行：TextView 要按「行」滚动、要算总行数、
-// 要让 Home/End/PageUp/PageDown 落在真实的行上。让 GDI+ 在绘制时自由换行就没法
-// 拿到行模型了，所以先在 DIP 空间算好行，再逐行绘制 —— 绘制与测量用的是同一份
-// 宽度，不会出现「算 10 行、画 11 行」。
+// 文本换行。先按 DIP 算好行、再逐行绘制，TextView 才能按行滚动与定位。
 
 #include <functional>
 #include <string>

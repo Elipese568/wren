@@ -1,10 +1,7 @@
 #pragma once
 
-// 单 HWND 的宿主（docs/design.md §2.3 / §3）。
-//
-// Host 拥有窗口、帧、材质、呈现器、焦点和 MSAA 根对象。它只处理窗口级消息：
-// WM_PAINT、鼠标/键盘、WM_DPICHANGED、WM_GETOBJECT、WM_TIMER。业务逻辑
-// （按钮点了做什么）通过 Widget 的回调交给调用方，Host 一概不知道。
+// 单 HWND 宿主（docs/design.md §2.3 / §3）：拥有窗口、帧、材质、呈现器、
+// 焦点与 MSAA 根对象。只处理窗口级消息，业务逻辑由调用方通过 Widget 回调提供。
 
 #include "automation.h"
 #include "canvas.h"
@@ -24,19 +21,18 @@
 
 namespace wren {
 
-/// 一帧的耗时统计。presenter=GPU 时 interval 应当贴着刷新周期，
-/// GDI 路径则会出现 BitBlt 与 WM_TIMER 造成的抖动。
+/// 一帧的耗时统计；presenter=GPU 时 interval 应当贴着刷新周期。
 struct FrameStats {
     unsigned long long frames = 0;
     double render_ms = 0.0;    ///< 形状 + 文字（CPU）平均耗时
     double paint_ms = 0.0;     ///< 形状/清屏/布局平均耗时
     double text_ms = 0.0;      ///< DirectWrite 文字平均耗时
     double present_ms = 0.0;   ///< 上屏（Present / BitBlt / UpdateLayeredWindow）平均耗时
-    double interval_ms = 0.0;  ///< 相邻两帧起点的平均间隔
+    double interval_ms = 0.0;  ///< 相邻两帧起点的间隔中位数
     double interval_p95_ms = 0.0;
     double interval_max_ms = 0.0;
-    int dropped = 0;     ///< 动画期间间隔 > 1.5 个 60Hz 周期的次数
-    int refresh_hz = 0;  ///< 由平均间隔反推的刷新率
+    int dropped = 0;     ///< 动画期间间隔超过期望值 1.5 倍的次数
+    int refresh_hz = 0;  ///< 由间隔反推的刷新率
 };
 
 struct HostOptions {
@@ -88,8 +84,7 @@ public:
 
     void invalidate(const RectF* dirty = nullptr);
     void set_tick_handler(std::function<void()> handler);
-    /// interval_ms <= 0 表示跟随合成器时钟（有多少刷新率就出多少帧）；
-    /// 正数则按该间隔节流（例如 16 ≈ 60fps）。
+    /// interval_ms <= 0 跟随合成器时钟，正数按该间隔节流。
     void set_animating(bool animating, int interval_ms = 33);
     /// 一次性定时回调（自动开始/自动关闭这类延迟动作），不占动画节拍。
     void schedule_once(int delay_ms, std::function<void()> callback);
@@ -171,7 +166,7 @@ private:
     int animation_interval_ms_ = 33;
     double last_tick_ms_ = 0.0;
 
-    // 合成器时钟节拍（180Hz 屏上按 3 个 tick 出一帧 60fps）。
+    // 合成器时钟节拍。
     double last_clock_ms_ = 0.0;
     double clock_period_ms_ = 0.0;
     int clock_ticks_ = 0;

@@ -1,11 +1,6 @@
 #pragma once
 
-// DirectWrite 灰度文字后端（全框架唯一文字路径）。
-//
-// 为什么不再用 GDI ClearType：ClearType 需要已知的不透明背景；在 Mica/Acrylic
-// 的透明表面上只能靠 alpha 补丁，既出鬼影，GDI 与 GDI+ 的排版度量还不一致
-// （同一份布局里两种基线）。DWrite 的灰度 AA 写正确的预乘 alpha，透明/不透明
-// 表面都能用，且测量与绘制来自同一套 layout —— 位置只算一次。
+// DirectWrite 灰度文字后端：全框架唯一的文字路径，测量与绘制共用同一份 layout。
 
 #include "canvas.h"
 

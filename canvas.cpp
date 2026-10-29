@@ -31,7 +31,7 @@ RectF intersect_rect(const RectF& left, const RectF& right) {
     return {x, y, r - x, b - y};
 }
 
-float clamp01(float value) {
+constexpr float clamp01(float value) {
     return std::clamp(value, 0.0f, 1.0f);
 }
 
@@ -125,8 +125,7 @@ Canvas::Canvas(Gdiplus::Bitmap& bitmap, float dpi, int width_px, int height_px)
     graphics_->SetPageUnit(Gdiplus::UnitPixel);
     graphics_->SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
     graphics_->SetPixelOffsetMode(Gdiplus::PixelOffsetModeNone);
-    // 文字默认由 DirectWrite 灰度 AA 绘制（单一后端，位置一致）；这里的 GDI+
-    // 文字只在 DWrite 初始化失败时兜底。
+    // 不能用 ClearTypeGridFit：alpha 表面会出彩边。
     graphics_->SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAliasGridFit);
     graphics_->SetCompositingMode(Gdiplus::CompositingModeSourceOver);
     graphics_->SetCompositingQuality(Gdiplus::CompositingQualityHighQuality);
@@ -165,13 +164,10 @@ void Canvas::set_dpi(float dpi) {
     const float scale = dpi_ / 96.0f;
 
     if (d2d_ != nullptr) {
-        // D2D 的坐标是 DIP；和 GDI+ 路径一样按 dpi/96 缩放，调用方只写 DIP。
         d2d_->SetTransform(D2D1::Matrix3x2F::Scale(scale, scale));
         return;
     }
 
-    // 所有绘制都按 DIP 给坐标，这里一次性放大到像素。文字也走这条变换，
-    // 所以字体按 DIP 尺寸创建即可，不需要两套坐标。
     graphics_->ResetTransform();
     graphics_->ScaleTransform(static_cast<Gdiplus::REAL>(scale), static_cast<Gdiplus::REAL>(scale),
                               Gdiplus::MatrixOrderAppend);
@@ -239,7 +235,7 @@ Gdiplus::StringFormat* Canvas::draw_format(const TextStyle& style) {
     }
 
     format->SetTrimming(style.ellipsis ? Gdiplus::StringTrimmingEllipsisCharacter : Gdiplus::StringTrimmingNone);
-    // 字符串表里的 '&' 是普通字符：不把它当助记符。
+    // '&' 按普通字符处理，不作助记符。
     format->SetHotkeyPrefix(Gdiplus::HotkeyPrefixNone);
 
     Gdiplus::StringFormat* raw = format.get();
@@ -277,8 +273,7 @@ float Canvas::line_ratio(const TextStyle& style) {
     Gdiplus::FontFamily family(style.family.c_str());
     if (family.GetLastStatus() == Gdiplus::Ok) {
         const INT em = family.GetEmHeight(Gdiplus::FontStyleRegular);
-        // GetLineSpacing 已经含 ascent + descent + line gap，比只加 ascent/descent
-        // 更接近 GDI+ 实际排版的基线间距。
+        // GetLineSpacing 已含 line gap，比 ascent+descent 更接近实际行距。
         const INT spacing = family.GetLineSpacing(Gdiplus::FontStyleRegular);
         if (em > 0 && spacing > 0) {
             ratio = static_cast<float>(spacing) / static_cast<float>(em);
@@ -388,13 +383,7 @@ void Canvas::draw_text(std::wstring_view text, const RectF& rect, const TextStyl
 void Canvas::draw_text_immediate(std::wstring_view text, const RectF& rect, const TextStyle& style, const Color& color,
                                  const RectF& clip) {
     if (d2d_ != nullptr) {
-        // 硬件后端没有 GDI+ Graphics；文字由 DirectWriteText 画到同一个 D2D target。
-        // Host 只在文字引擎就绪时才启用硬件路径，所以这里只会是误用。
-        (void)text;
-        (void)rect;
-        (void)style;
-        (void)color;
-        (void)clip;
+        // 硬件后端没有 GDI+ Graphics；文字由 DirectWriteText 绘制，走到这里属于误用。
         return;
     }
 
@@ -615,8 +604,6 @@ void Canvas::draw_icon_d2d(IconId icon, const RectF& rect, const Color& color) {
 
 void Canvas::draw_image(const Gdiplus::Image& image, const RectF& rect) {
     if (d2d_ != nullptr) {
-        (void)image;  // 硬件路径没有 GDI+ Bitmap；当前控件集不使用图片
-        (void)rect;
         return;
     }
 
@@ -624,7 +611,7 @@ void Canvas::draw_image(const Gdiplus::Image& image, const RectF& rect) {
         return;
     }
 
-    // GDI+ 的 DrawImage 只接收非 const Image*，但它不会修改图像；这里按 SDK 约定转换。
+    // DrawImage 只收非 const Image*，但它不会修改图像。
     graphics_->DrawImage(const_cast<Gdiplus::Image*>(&image), rect.x, rect.y, rect.width, rect.height);
 }
 
@@ -692,8 +679,6 @@ SizeF Canvas::measure_text(std::wstring_view text, float max_width, const TextSt
     }
 
     if (d2d_ != nullptr) {
-        // 硬件路径没有 GDI+ 度量；单行宽度走 DWrite，换行由控件自己的行模型处理。
-        (void)max_width;
         return {measure_text_width(text, style), line_height(style)};
     }
 
@@ -771,8 +756,7 @@ void Frame::create(int width_px, int height_px, float dpi) {
 
     old_bitmap_ = ::SelectObject(memory_dc_, dib_);
 
-    // GDI+ 直接画进 DIB 的像素：GDI+ 负责预乘 alpha，DWM 与
-    // UpdateLayeredWindow 都按 AC_SRC_ALPHA 解释这份数据。
+    // GDI+ 负责预乘 alpha；DWM 按 AC_SRC_ALPHA 解释这块像素。
     bitmap_ = std::make_unique<Gdiplus::Bitmap>(width_px_, height_px_, width_px_ * 4, PixelFormat32bppPARGB,
                                                 static_cast<BYTE*>(bits_));
     if (bitmap_->GetLastStatus() != Gdiplus::Ok) {

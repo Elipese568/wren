@@ -5,11 +5,11 @@
 namespace wren {
 namespace {
 
-bool is_space(wchar_t c) {
+constexpr bool is_space(wchar_t c) {
     return c == L' ' || c == L'\t' || c == L'\r' || c == 0x3000;  // 含 CR 与全角空格
 }
 
-bool is_cjk_range(wchar_t c) {
+constexpr bool is_cjk_range(wchar_t c) {
     return (c >= 0x1100 && c <= 0x11FF) ||  // 谚文字母
            (c >= 0x2E80 && c <= 0x303F) ||  // CJK 部首、标点
            (c >= 0x3040 && c <= 0x30FF) ||  // 假名
@@ -28,10 +28,7 @@ void push_line(std::vector<WrappedLine>& lines, std::wstring& line, float& width
         line.pop_back();
     }
 
-    WrappedLine wrapped;
-    wrapped.text = std::move(line);
-    wrapped.width = width;
-    lines.push_back(std::move(wrapped));
+    lines.push_back(WrappedLine{std::move(line), width});
     line.clear();
     width = 0.0f;
 }
@@ -53,7 +50,6 @@ std::vector<WrappedLine> wrap_text(std::wstring_view text, float max_width, cons
 
     std::size_t index = 0;
     while (index <= text.size()) {
-        // 先切出一个段落（显式 '\n' 之间）。
         std::size_t end = text.find(L'\n', index);
         if (end == std::wstring_view::npos) {
             end = text.size();
@@ -61,15 +57,13 @@ std::vector<WrappedLine> wrap_text(std::wstring_view text, float max_width, cons
 
         const std::wstring_view paragraph = text.substr(index, end - index);
 
-        // 段落内再切成「一个 CJK 字 / 一个拉丁词 / 一个空格」这样的原子 token。
         std::size_t cursor = 0;
         while (cursor < paragraph.size()) {
             const wchar_t c = paragraph[cursor];
             if (is_space(c)) {
                 if (!line.empty() && !is_space(line.back())) {
-                    const std::wstring space(1, L' ');
-                    line += space;
-                    line_width += measure(space);
+                    line.push_back(L' ');
+                    line_width += measure(L" ");
                 }
 
                 ++cursor;
@@ -89,7 +83,7 @@ std::vector<WrappedLine> wrap_text(std::wstring_view text, float max_width, cons
 
             const float token_width = measure(token);
 
-            // 单个 token 就超过一行：按字符硬拆（长 URL、无空格路径）。
+            // 单个 token 超宽时按字符硬拆（长 URL、无空格路径）。
             if (token_width > max_width && token.size() > 1) {
                 for (const wchar_t ch : token) {
                     const std::wstring piece(1, ch);
@@ -113,7 +107,7 @@ std::vector<WrappedLine> wrap_text(std::wstring_view text, float max_width, cons
             line_width += token_width;
         }
 
-        // 段落结束：即使空段落也保留一行，保证 '\n\n' 不丢空行。
+        // 空段落也保留一行，保证 '\n\n' 不丢空行。
         push_line(lines, line, line_width);
 
         if (end == text.size()) {

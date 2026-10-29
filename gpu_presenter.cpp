@@ -14,19 +14,7 @@ using Microsoft::WRL::ComPtr;
 
 constexpr UINT kBufferCount = 2;
 
-// D3D11 + DirectComposition 呈现。
-//
-// 为什么不是 HWND flip 交换链：CreateSwapChainForHwnd 明确拒绝
-// DXGI_ALPHA_MODE_PREMULTIPLIED（实测 E_INVALIDARG）。要保留 Mica/Acrylic
-// 的逐像素 alpha，交换链只能走 CreateSwapChainForComposition + DComp。
-//
-// 帧仍由 GDI+/DirectWrite 画进 DIB，这里只负责「上屏」：
-//   DIB → staging 纹理 → CopyResource → 组合交换链 → DWM 合成。
-//
-// 效果：
-//   - 预乘 alpha 的交换链叠在窗口的重定向位图上，透明处继续露出 Mica；
-//   - Present(1) 等合成器的垂直同步，没有 BitBlt 撕裂；
-//   - 帧延迟等待句柄交给 Host 的动画循环，不再靠 15.6ms 的 WM_TIMER。
+// D3D11 + DirectComposition 呈现：预乘 alpha 只能走组合交换链，透明处露出 Mica。
 class GpuPresenter final : public Presenter {
 public:
     ~GpuPresenter() override {
@@ -60,8 +48,7 @@ public:
         // D2D 失败还能退回「DIB → staging → 交换链」，所以不算致命错误。
         create_d2d();
 
-        // DComp 只覆盖内容；窗口自己的重定向位图仍要透出 Mica，所以先清成
-        // alpha=0。之后每帧只走 DComp，不再碰 GDI 表面。
+        // 重定向位图必须清成 alpha=0，DComp 的透明处才会露出 Mica。
         clear_redirection_surface();
 
         healthy_ = true;
@@ -96,13 +83,12 @@ public:
         const HRESULT status = d2d_context_->EndDraw();
         drawing_ = false;
 
-        if (status == D2DERR_RECREATE_TARGET) {
+        // 含 D2DERR_RECREATE_TARGET：目标已失效，本帧不出，交给 Host 降级。
+        if (FAILED(status)) {
             healthy_ = false;
             return;
         }
 
-        // D2D 画在普通纹理上（交换链 back buffer 不能直接当 D2D target），
-        // 最后一步 GPU→GPU 拷到 back buffer 再 Present。
         ComPtr<ID3D11Texture2D> back_buffer;
         if (d2d_texture_ == nullptr || FAILED(swap_chain_->GetBuffer(0, IID_PPV_ARGS(&back_buffer))) ||
             back_buffer == nullptr) {
@@ -148,7 +134,6 @@ public:
             return;
         }
 
-        // 旧的 D2D target/texture 尺寸不对了，必须释放重建。
         if (d2d_context_ != nullptr) {
             d2d_context_->SetTarget(nullptr);
         }
@@ -162,7 +147,7 @@ public:
             composition_device_->Commit();
         }
 
-        // 缩放/拖动会重建重定向位图，透明背景要重新铺一次。
+        // 缩放/拖动会重建重定向位图，得重新清成 alpha=0。
         clear_redirection_surface();
     }
 
@@ -198,8 +183,7 @@ public:
     }
 
 private:
-    /// D2D 不能直接把组合交换链的 back buffer 当 target（实测 E_INVALIDARG），
-    /// 所以先画到一张普通纹理，再在 end_frame 里 GPU 拷贝到 back buffer。
+    /// 交换链 back buffer 不能当 D2D target，先画到普通纹理，end_frame 时拷回。
     bool ensure_d2d_target() {
         if (d2d_target_ != nullptr && d2d_texture_ != nullptr && d2d_texture_width_ == width_ &&
             d2d_texture_height_ == height_) {
@@ -257,7 +241,8 @@ private:
             composition_device_->Commit();
         }
 
-        if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
+        // Present 失败这一帧就丢了，按设备丢失处理，交给 Host 降级到 GDI。
+        if (FAILED(hr)) {
             healthy_ = false;
         }
     }
@@ -282,8 +267,7 @@ private:
         return d2d_context_ != nullptr;
     }
 
-    /// 把窗口的重定向位图清成 alpha=0（BLACKNESS 连 alpha 一起清零）。
-    /// DComp 视觉里透明的地方就会露出 DWM 的 Mica，而不是一块黑底。
+    /// 重定向位图清成 alpha=0（BLACKNESS 连 alpha 一起清），透明处才露出 Mica。
     void clear_redirection_surface() {
         if (hwnd_ == nullptr || ::IsWindow(hwnd_) == FALSE) {
             return;
@@ -311,7 +295,7 @@ private:
         D3D_FEATURE_LEVEL level{};
         const HRESULT hr =
             ::D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, D3D11_CREATE_DEVICE_BGRA_SUPPORT, levels,
-                                ARRAYSIZE(levels), D3D11_SDK_VERSION, &device_, &level, &context_);
+                                static_cast<UINT>(ARRAYSIZE(levels)), D3D11_SDK_VERSION, &device_, &level, &context_);
         if (FAILED(hr)) {
             return false;
         }
@@ -330,8 +314,7 @@ private:
             return false;
         }
 
-        // 组合交换链只接受 FLIP_SEQUENTIAL。waitable 对象在个别驱动上不支持，
-        // 失败就去掉标志再试（Host 会退回 WM_TIMER 驱动动画）。
+        // 组合交换链只接受 FLIP_SEQUENTIAL；waitable 在个别驱动上不支持，失败就去掉标志重试。
         const struct {
             DXGI_SCALING scaling;
             UINT flags;
@@ -343,6 +326,7 @@ private:
         };
 
         HRESULT last = E_FAIL;
+        bool waitable = false;
         for (const auto& attempt : attempts) {
             DXGI_SWAP_CHAIN_DESC1 desc{};
             desc.Width = static_cast<UINT>(width_px);
@@ -359,6 +343,7 @@ private:
 
             last = factory->CreateSwapChainForComposition(device_.Get(), &desc, nullptr, &swap_chain_);
             if (SUCCEEDED(last)) {
+                waitable = (attempt.flags & DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT) != 0;
                 break;
             }
         }
@@ -372,7 +357,8 @@ private:
         }
 
         swap_chain2_->SetMaximumFrameLatency(1);
-        frame_wait_ = swap_chain2_->GetFrameLatencyWaitableObject();
+        // 没有 waitable 标志时拿不到句柄，Host 会退回 WM_TIMER 驱动。
+        frame_wait_ = waitable ? swap_chain2_->GetFrameLatencyWaitableObject() : nullptr;
         return true;
     }
 
@@ -411,8 +397,7 @@ private:
         desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
         desc.SampleDesc.Count = 1;
         desc.Usage = D3D11_USAGE_DYNAMIC;
-        // DYNAMIC 纹理必须至少有一个 bind flag（实测 BindFlags=0 会返回
-        // E_INVALIDARG）；这里只需要 CPU 可写的中转，不创建 SRV。
+        // DYNAMIC 纹理必须带至少一个 bind flag（BindFlags=0 会 E_INVALIDARG），这里只为 CPU 可写。
         desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
         desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 

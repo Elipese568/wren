@@ -66,7 +66,7 @@ void Widget::paint_focus_ring(Canvas& canvas, float radius) const {
         return;
     }
 
-    // 1px 实线 + 2px 内缩：只靠颜色区分焦点在浅色/深色/HC 下都不够稳。
+    // 只靠颜色区分焦点，在浅色/深色/高对比度下都不够稳。
     const Theme& current = theme();
     canvas.stroke_round_rect(bounds.inset(1.5f), radius, current.focus_ring, 1.0f);
 }
@@ -96,7 +96,7 @@ void Panel::paint(Canvas& canvas) {
     }
 
     canvas.push_clip(bounds);
-    for (auto& child : children_) {
+    for (const auto& child : children_) {
         if (child->visible) {
             child->paint(canvas);
         }
@@ -129,13 +129,13 @@ void Panel::tick(float dt_seconds) {
         return;
     }
 
-    for (auto& child : children_) {
+    for (const auto& child : children_) {
         child->tick(dt_seconds);
     }
 }
 
 void Panel::on_theme_changed() {
-    for (auto& child : children_) {
+    for (const auto& child : children_) {
         child->on_theme_changed();
     }
 }

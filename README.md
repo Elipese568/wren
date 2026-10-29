@@ -80,9 +80,10 @@ target_link_libraries(my_app PRIVATE Wren::wren)
 ```
 
 `wren` 是 `STATIC` 库，`PUBLIC` 带上了 include 目录、`UNICODE/_UNICODE`、
-`WIN32_LEAN_AND_MEAN`、`NOMINMAX` 和全部系统库（`d2d1 dwrite d3d11 dcomp dxgi
-dwmapi gdiplus oleacc oleaut32 ole32 user32 gdi32 advapi32`），宿主不需要再配。
-`WREN_BUILD_DEMO` / `WREN_BUILD_TESTS` 在作为子工程时默认关闭。
+`WIN32_LEAN_AND_MEAN`、`NOMINMAX`、`/utf-8` 和全部系统库（`d2d1 dwrite d3d11 dcomp
+dxgi dwmapi gdiplus oleacc oleaut32 ole32 user32 gdi32 advapi32`），宿主不需要再配。
+`/utf-8` 必须传播：头文件注释是 UTF-8 中文，MSVC 按 ANSI 代码页读会吞掉下一行的
+`#include`。`WREN_BUILD_DEMO` / `WREN_BUILD_TESTS` 在作为子工程时默认关闭。
 
 最小程序：
 
@@ -119,6 +120,21 @@ int wmain() {
 
 布局就是给每个 Widget 一个 DIP 矩形（`bounds`），由调用方自己算——没有
 measure/arrange 约束系统。`WM_DPICHANGED` 只改 DPI 与帧尺寸，DIP 布局值不变。
+
+## 开发约定
+
+- **格式化**：全部 C++ 由 `clang-format` 按仓库根的 `.clang-format` 统一（MSVC 基线、
+  Attach 大括号、列宽 120）。启用提交钩子：
+
+  ```powershell
+  pwsh -File scripts/setup-hooks.ps1    # 等价于 git config core.hooksPath .githooks
+  ```
+
+  钩子只格式化暂存区的 `.cpp`/`.h` 并重新入暂存区；机器上没有 clang-format 时只警告
+  不阻塞（可用 `CLANG_FORMAT` 环境变量指定路径）。
+- **注释只写「为什么」**：一行以内，说明非显而易见的约束或坑（API 顺序、标志位、
+  不反压的 Present、预乘 alpha 之类）。设计取舍、历史演进、踩坑经过写在
+  [`docs/design.md`](docs/design.md) 与本文，不重复到代码里。
 
 ## 架构
 

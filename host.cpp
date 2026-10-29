@@ -142,15 +142,13 @@ bool Host::create(HINSTANCE instance, std::unique_ptr<Widget> root, HostOptions 
 
     gdiplus_ready_ = true;
 
-    // 文字统一走 DirectWrite 灰度 AA；初始化失败时 Canvas 会退回 GDI+ 灰度。
     text_engine_.initialize();
 
-    // MSAA 服务端（LresultFromObject）要求 UI 线程初始化过 OLE 公寓；
-    // 调用方已经初始化时 OleInitialize 返回 S_FALSE，仍然计入引用。
+    // LresultFromObject 要求 UI 线程有 OLE 公寓；S_FALSE 也已计入引用。
     const HRESULT ole = ::OleInitialize(nullptr);
     ole_initialized_ = SUCCEEDED(ole);
 
-    // 如果主程序没声明 PerMonitorV2，这里补一次；已经设过会失败，忽略即可。
+    // 补设 PerMonitorV2；已设置过会失败，忽略即可。
     ::SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
     appearance_auto_ = options_.appearance == Appearance::Auto;
@@ -172,8 +170,7 @@ bool Host::create(HINSTANCE instance, std::unique_ptr<Widget> root, HostOptions 
         dpi_ = 96.0f;
     }
 
-    // 客户区固定为 720x480 dp（或调用方给的值）；窗口尺寸用
-    // AdjustWindowRectExForDpi 反推，150%/200% 下客户区不会被边框吃掉。
+    // 客户区尺寸用 AdjustWindowRectExForDpi 反推，高 DPI 下不会被边框吃掉。
     RECT rect{0, 0, static_cast<LONG>(pixels(static_cast<float>(options_.width_dip))),
               static_cast<LONG>(pixels(static_cast<float>(options_.height_dip)))};
     ::AdjustWindowRectExForDpi(&rect, kWindowStyle, FALSE, 0, static_cast<UINT>(dpi_));
@@ -184,14 +181,13 @@ bool Host::create(HINSTANCE instance, std::unique_ptr<Widget> root, HostOptions 
     attach_host(*root_, this);
     update_client_size();
 
-    // 标题栏亮暗要在窗口上屏前给到 DWM：系统是深色时，只在 ShowWindow 之后
-    // 设置属性常常看不到效果（标题栏已经按系统主题画过一次）。
+    // 深色标题栏必须在上屏前设置，否则 DWM 已按系统主题画过一次。
     apply_dark_title_bar(hwnd_, appearance_ == Appearance::Dark);
 
     ::ShowWindow(hwnd_, SW_SHOWNORMAL);
     ::UpdateWindow(hwnd_);
 
-    // 材质必须在窗口上屏之后申请：DWM 只为已经显示的窗口建立合成表面。
+    // 材质要在上屏后申请：DWM 只为已显示的窗口建立合成表面。
     refresh_material();
     accessibility_ = create_accessibility_root(this);
     if (layered_) {
@@ -204,13 +200,9 @@ bool Host::create(HINSTANCE instance, std::unique_ptr<Widget> root, HostOptions 
 int Host::run() {
     MSG message{};
 
-    // 有 vsync 句柄时，动画由合成器的帧节拍驱动：等「可以画下一帧」→ tick →
-    // 渲染 → Present(1) 阻塞到垂直同步。没有句柄（GDI/layered）时退化成
-    // 消息循环 + WM_TIMER，和以前一样。
     for (;;) {
         if (animating_ && presenter_ != nullptr && presenter_->compositor_paced()) {
-            // 组合交换链的 Present 不反压；等 DWM 的下一个合成时钟，
-            // 既把帧率钉在刷新率，也不让 UI 线程空转。
+            // 组合交换链的 Present 不反压，这里等合成器时钟。
             const HRESULT clock_status = ::DCompositionWaitForCompositorClock(0, nullptr, 100);
 
             bool quitting = false;
@@ -232,9 +224,7 @@ int Host::run() {
                 ::Sleep(16);  // 没有合成器时钟（旧系统/禁用 DWM）时的兜底节拍
             }
 
-            // 合成器时钟通常等于显示器刷新率（本机 180Hz）。按测量到的周期
-            // 折算成「每隔几个 tick 出一帧」，既精确落在 vblank 上，又不会
-            // 为了一个进度条按 180fps 空转。
+            // 按实测周期折算成「每 N 个 tick 一帧」，不按刷新率空转。
             const double clock_now = now_ms();
             if (last_clock_ms_ > 0.0) {
                 const double delta = clock_now - last_clock_ms_;
@@ -246,8 +236,6 @@ int Host::run() {
 
             if (animating_) {
                 ++clock_ticks_;
-                // interval <= 0：每个合成 tick 都出一帧（180Hz 屏就是 180fps）。
-                // 正数则折算成「每 N 个 tick 一帧」。
                 const int ticks_needed =
                     (animation_interval_ms_ <= 0 || clock_period_ms_ <= 0.5)
                         ? 1
@@ -391,9 +379,7 @@ void Host::refresh_material() {
     material_kind_ = material_->kind();
     theme_ = make_theme(appearance_, material_kind_ != MaterialKind::Solid);
 
-    // 分层窗口与标准 caption 不相容：UpdateLayeredWindow 会把 psize 当成**整窗**
-    // 尺寸，而帧只有客户区大小。所以分层模式下切到无边框，窗口尺寸 == 帧尺寸；
-    // 顶部 40dp 由 WM_NCHITTEST 提供拖动。
+    // UpdateLayeredWindow 的尺寸是整窗，帧只是客户区，所以分层模式切无边框。
     const PresenterPreference preference = presenter_preference();
     const bool want_layered = preference == PresenterPreference::Layered && material_kind_ != MaterialKind::Solid;
     apply_window_mode(want_layered);
@@ -412,8 +398,7 @@ void Host::refresh_material() {
         presenter_ = make_gdi_presenter();
     }
 
-    // 交换链路径会改 WS_EX_NOREDIRECTIONBITMAP / 扩展边框；DWM 的材质属性
-    // 在窗口样式变化后可能被重置，所以在 presenter 建好之后再确认一次。
+    // 样式变化可能重置 DWM 材质属性，presenter 建好后重设一次。
     if (material_ != nullptr) {
         material_->apply(hwnd_, dark);
     }
@@ -476,21 +461,20 @@ void Host::update_client_size() {
     }
 }
 
-void Host::invalidate(const RectF* dirty) {
-    (void)dirty;  // 720x480 全量重画成本很低，第一版不做脏矩形。
+void Host::invalidate([[maybe_unused]] const RectF* dirty) {
+    // 全量重画成本很低，暂不做脏矩形。
 
     if (hwnd_ == nullptr) {
         return;
     }
 
     if (animating_) {
-        // 动画帧本来就会整帧重绘；tick 里控件 set_value/set_text 的失效
-        // 不必再排一次 WM_PAINT，否则每帧会画两遍。
+        // 动画帧本来就整帧重绘，再排 WM_PAINT 会画两遍。
         return;
     }
 
     if (layered_) {
-        // 分层窗口不靠 WM_PAINT 上屏，每次失效都要重新 UpdateLayeredWindow。
+        // 分层窗口不靠 WM_PAINT 上屏，失效即重画。
         render_now();
         return;
     }
@@ -526,7 +510,7 @@ void Host::ensure_frame() {
     }
 
     if (presenter_ != nullptr) {
-        // 交换链要跟客户区同尺寸；否则 DWM 会把旧的 back buffer 拉伸。
+        // 交换链必须跟客户区同尺寸，否则 DWM 会拉伸旧 back buffer。
         presenter_->resize(width, height);
     }
 
@@ -537,8 +521,7 @@ void Host::ensure_frame() {
 void Host::render(HDC dc) {
     const double frame_start = now_ms();
 
-    // 设备丢失（驱动更新、RDP 切换、显卡重置）：整条硬件路径退回 GDI，
-    // 至少窗口还能画，不把「黑窗」留给用户。
+    // 设备丢失（驱动更新/RDP/显卡重置）时整条硬件路径退回 GDI，不留黑窗。
     if (presenter_ != nullptr && !presenter_->healthy()) {
         hardware_canvas_.reset();
         text_engine_.reset();
@@ -591,9 +574,7 @@ void Host::render(HDC dc) {
 
     const double paint_done = now_ms();
 
-    // 所有文字走同一个 DirectWrite 灰度 AA 后端：透明与不透明表面、测量与
-    // 绘制都来自同一套 layout，不会再出现「两种模式差半个像素」。
-    // 硬件路径不 Flush GDI+（没有 GDI+ 画布），D2D 批次由 end_frame 提交。
+    // D2D 批次由 end_frame 提交；硬件路径没有 GDI+ 画布，不 Flush。
     if (!hardware) {
         canvas.flush();
     }
@@ -620,7 +601,7 @@ void Host::render(HDC dc) {
     }
 
     if (!rendered && !hardware) {
-        // DWrite 初始化/绑定失败：退回 GDI+ 灰度 AA，宁可略软也不能没字。
+        // DWrite 失败时退回 GDI+ 灰度 AA，不能没字。
         for (const TextCommand& command : commands) {
             canvas.draw_text_immediate(command.text, command.rect, command.style, command.color, command.clip);
         }
@@ -987,8 +968,7 @@ void Host::set_animating(bool animating, int interval_ms) {
     sync_animation_timer();
 
     if (animating_ && hwnd_ != nullptr) {
-        // 合成器节拍由 run() 的 wait 驱动；这里发一条空消息把可能阻塞在
-        // MsgWaitForMultipleObjectsEx 的主循环叫醒，否则第一帧要等下一次输入。
+        // 叫醒可能阻塞在 MsgWaitForMultipleObjectsEx 的主循环，否则首帧要等输入。
         ::PostMessageW(hwnd_, WM_NULL, 0, 0);
     }
 }
@@ -1107,8 +1087,7 @@ LRESULT Host::on_paint() {
 }
 
 LRESULT Host::on_get_object(WPARAM wparam, LPARAM lparam) {
-    // LPARAM 在 64 位下可能被零扩展成 0x00000000FFFFFFFC；按 32 位有符号
-    // 取回 OBJID_CLIENT(-4) 再比较，两种传法都能命中。
+    // LPARAM 高 32 位可能被零扩展，按 32 位有符号取回 OBJID_CLIENT(-4)。
     if (static_cast<LONG>(lparam) == OBJID_CLIENT && accessibility_ != nullptr) {
         ++accessibility_requests_;
         return ::LresultFromObject(IID_IAccessible, wparam, accessibility_.get());
@@ -1157,7 +1136,7 @@ LRESULT Host::handle(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
         }
 
         case WM_NCHITTEST:
-            // 分层模式没有 caption：顶部 40dp 当标题栏拖动，其余仍走客户区。
+            // 分层模式没有 caption：顶部 40dp 当标题栏拖动。
             if (layered_) {
                 POINT point{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
                 ::ScreenToClient(hwnd_, &point);
@@ -1219,8 +1198,8 @@ LRESULT Host::handle(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
             float y = 0.0f;
             to_dip(lparam, x, y);
 
-            Widget* target = captured_;
-            captured_ = nullptr;  // ReleaseCapture 会发 WM_CAPTURECHANGED，先摘掉避免重复
+            // 先摘掉捕获，ReleaseCapture 触发的 WM_CAPTURECHANGED 不能再处理一次。
+            Widget* target = std::exchange(captured_, nullptr);
 
             if (target != nullptr) {
                 MouseEvent event;

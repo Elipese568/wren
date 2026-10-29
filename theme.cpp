@@ -6,7 +6,7 @@ namespace wren {
 namespace {
 
 bool read_dword(HKEY root, const wchar_t* path, const wchar_t* name, DWORD& value) {
-    DWORD size = sizeof(value);
+    DWORD size = static_cast<DWORD>(sizeof(value));
     const LSTATUS status = ::RegGetValueW(root, path, name, RRF_RT_REG_DWORD, nullptr, &value, &size);
     return status == ERROR_SUCCESS;
 }
@@ -32,8 +32,8 @@ TextStyle make_style(float size, int weight, bool wrap = false, bool ellipsis = 
 
 bool high_contrast_enabled() {
     HIGHCONTRASTW contrast{};
-    contrast.cbSize = sizeof(contrast);
-    if (::SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(contrast), &contrast, 0) == FALSE) {
+    contrast.cbSize = static_cast<UINT>(sizeof(contrast));
+    if (::SystemParametersInfoW(SPI_GETHIGHCONTRAST, static_cast<UINT>(sizeof(contrast)), &contrast, 0) == FALSE) {
         return false;
     }
 
@@ -78,7 +78,7 @@ Color system_accent() {
         }
     }
 
-    return Color::rgb(0x00, 0x78, 0xD4);  // Windows 默认蓝
+    return Color::rgb(0x00, 0x78, 0xD4);
 }
 
 Theme make_theme(Appearance appearance, bool material_visible) {
@@ -156,8 +156,7 @@ Theme make_theme(Appearance appearance, bool material_visible) {
     }
 
     if (theme.material_visible) {
-        // 半透明卡片：材质从底下透出来。文字由 DirectWrite 灰度 AA 绘制，
-        // 在带 alpha 的表面上也能写正确的预乘 alpha，不再需要不透明底。
+        // 半透明卡片：材质从底下透出，文字由 DirectWrite 灰度 AA 写预乘 alpha。
         theme.card = dark ? Color::rgba(38, 38, 38, 0.66f) : Color::rgba(255, 255, 255, 0.70f);
         theme.card_border = dark ? Color::rgba(255, 255, 255, 0.09f) : Color::rgba(0, 0, 0, 0.08f);
         theme.control = dark ? Color::rgba(255, 255, 255, 0.06f) : Color::rgba(255, 255, 255, 0.58f);

@@ -6,8 +6,7 @@
 namespace wren {
 namespace {
 
-// DWM 属性号写死而不是用 SDK 枚举：这些值从 Windows 10 到 11 一直稳定，
-// 用返回值判断支持与否即可，不依赖编译时 SDK 版本。
+// 属性号写死：Win10–11 稳定，按返回值判断支持，不依赖 SDK 版本。
 constexpr DWORD kDwmwaUseImmersiveDarkMode = 20;
 constexpr DWORD kDwmwaUseImmersiveDarkModeBefore20H1 = 19;
 constexpr DWORD kDwmwaWindowCornerPreference = 33;
@@ -22,7 +21,8 @@ void apply_common_window_attributes(HWND hwnd, bool dark) {
     const DWORD corner = kDwmwcpRound;
     ::DwmSetWindowAttribute(hwnd, kDwmwaWindowCornerPreference, &corner, sizeof(corner));
 }
-bool extend_frame(HWND hwnd) {
+
+[[nodiscard]] bool extend_frame(HWND hwnd) {
     MARGINS margins{-1, -1, -1, -1};
     return SUCCEEDED(::DwmExtendFrameIntoClientArea(hwnd, &margins));
 }
@@ -54,9 +54,8 @@ public:
     }
 };
 
-// ---- Acrylic：未文档化 API，全部隔离在这个类里 ----
-//
-// 结构体自己定义，不依赖 SDK 头；GetProcAddress 动态取，Win10 上没有也不会崩。
+// ---- Acrylic：未文档化 API，隔离在这个类里 ----
+// 结构体自定义 + GetProcAddress 动态取，Win10 上不会崩。
 struct AccentPolicy {
     DWORD state;
     DWORD flags;
@@ -82,7 +81,7 @@ SetWindowCompositionAttributeFn load_set_window_composition_attribute() {
     return function;
 }
 
-bool set_accent(HWND hwnd, DWORD state, DWORD gradient_color) {
+[[nodiscard]] bool set_accent(HWND hwnd, DWORD state, DWORD gradient_color) {
     const auto set_attribute = load_set_window_composition_attribute();
     if (set_attribute == nullptr) {
         return false;
@@ -117,14 +116,13 @@ public:
             return false;
         }
 
-        // 0xAABBGGRR：深色给一层暗色 tint，浅色给亮色。alpha 太高会把后面的
-        // 内容压死，0x99 是亚克力比较常见的取法。
+        // 0xAABBGGRR；alpha 太高会压住内容，0x99 是亚克力的常见取法。
         const DWORD tint = dark ? 0x99202020u : 0x99F3F3F3u;
         if (set_accent(hwnd, kAccentEnableAcrylicBlurBehind, tint)) {
             return true;
         }
 
-        // Win10 1803 之前的旧形态：只有模糊没有 tint/noise，仍比纯色强。
+        // BlurBehind 兜底：只有模糊，没有 tint/noise。
         return set_accent(hwnd, kAccentEnableBlurBehind, tint);
     }
 };
@@ -138,10 +136,10 @@ public:
             return false;
         }
 
-        // Solid 也是正式材质：标题栏/圆角照常跟随主题，只是没有透明背景。
+        // Solid 也是正式材质，标题栏/圆角照常跟随主题。
         apply_common_window_attributes(hwnd, dark);
 
-        // 关掉可能残留的材质属性（从 Mica 切回 Solid 时）。
+        // 从 Mica/Acrylic 切回时清掉可能残留的材质属性。
         const BOOL alpha = FALSE;
         ::DwmSetWindowAttribute(hwnd, kDwmwaRedirectionBitmapAlpha, &alpha, sizeof(alpha));
 

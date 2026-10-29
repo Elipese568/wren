@@ -1,10 +1,7 @@
 #pragma once
 
-// 主题 token（docs/design.md §5.5）。
-//
-// Theme 只放颜色/字号/圆角，不放控件逻辑。Widget 从 Host::theme() 拿当前主题；
-// 材质是否可见（Mica/Acrylic vs Solid）会改变卡片的透明度 —— 这也是这里
-// 唯一一处「主题依赖材质」的地方：Solid 下卡片必须不透明，否则会发灰。
+// 主题 token（docs/design.md §5.5）：只有颜色/字号/圆角，不含控件逻辑。
+// material_visible=false（Solid）时卡片必须不透明，否则会发灰。
 
 #include "canvas.h"
 

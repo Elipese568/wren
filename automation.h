@@ -1,9 +1,7 @@
 #pragma once
 
-// MSAA（IAccessible）暴露（docs/design.md §6）。
-//
-// 标准控件移除后，Narrator 看到的就是一个空 Pane。这里把 Widget 树暴露成
-// IAccessible 子对象：根对象 = 客户区，子对象 = 可见 Widget + Table 的每一行。
+// MSAA（IAccessible）暴露（docs/design.md §6）：
+// 根对象 = 客户区，子对象 = 可见 Widget + Table 的每一行。
 
 #include <Windows.h>
 

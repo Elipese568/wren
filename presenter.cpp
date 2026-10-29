@@ -13,8 +13,7 @@ public:
             return;
         }
 
-        // SourceCopy 是关键：整帧（含 alpha）覆盖到窗口重定向位图，
-        // 不能只用 AlphaBlend —— 它会保留目标 alpha，透明区就不透了。
+        // SourceCopy 整帧连 alpha 一起覆盖；AlphaBlend 会保留目标 alpha，透明区就不透。
         Gdiplus::Graphics screen(dc);
         screen.SetCompositingMode(Gdiplus::CompositingModeSourceCopy);
         screen.SetInterpolationMode(Gdiplus::InterpolationModeNearestNeighbor);
@@ -30,14 +29,13 @@ public:
     PresenterKind kind() const override { return PresenterKind::Layered; }
     const wchar_t* name() const override { return L"UpdateLayeredWindow"; }
 
-    void present(const Frame& frame, HDC dc) override {
-        (void)dc;  // 分层窗口不需要目标 DC，帧数据直接从 DIB 送进 DWM。
-
+    void present(const Frame& frame, [[maybe_unused]] HDC dc) override {
+        // 分层窗口直接从 DIB 上屏，不需要目标 DC。
         if (hwnd_ == nullptr || frame.memory_dc() == nullptr) {
             return;
         }
 
-        LONG_PTR ex_style = ::GetWindowLongPtrW(hwnd_, GWL_EXSTYLE);
+        const LONG_PTR ex_style = ::GetWindowLongPtrW(hwnd_, GWL_EXSTYLE);
         if ((ex_style & WS_EX_LAYERED) == 0) {
             ::SetWindowLongPtrW(hwnd_, GWL_EXSTYLE, ex_style | WS_EX_LAYERED);
         }

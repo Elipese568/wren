@@ -1,13 +1,7 @@
 #pragma once
 
-// 窗口背景材质（docs/design.md §4）。
-//
-// 三种材质只负责「让窗口后面透出什么」：
-//   Mica    —— Win11 26100+，属性 38 + 39 + 扩展边框；
-//   Acrylic —— Win10/旧 Win11，SetWindowCompositionAttribute（未文档化，隔离在本文件）；
-//   Solid   —— 正式支持的兜底，不是失败态。
-//
-// Widget 不感知材质：它只画半透明/实色表面，底下透出什么由 Material 决定。
+// 窗口背景材质（docs/design.md §4）：Mica / Acrylic（未文档化 API 隔离在本文件）/ Solid。
+// Widget 不感知材质，只画半透明或实色表面。
 
 #include "canvas.h"
 

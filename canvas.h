@@ -1,16 +1,10 @@
 #pragma once
 
-// 自绘 UI 框架的绘图后端（docs/design.md §3）。
-//
-// 这里是全框架**唯一**接触 GDI+ 的地方：上层只看到 RectF / Color / TextStyle 和
-// Canvas 的绘制动词。将来换 D2D 时只需要另一个 Canvas 实现，Widget 不用动。
-//
-// 坐标一律是 DIP（与现有 ControlSpec 的 dp 坐标同一套）；Canvas 内部按 dpi/96
-// 做一次 ScaleTransform，所以调用方不需要自己乘。像素单位只出现在 Frame 上。
+// 绘图后端（docs/design.md §3）：上层只看到 RectF / Color / TextStyle 与绘制动词。
+// 坐标一律 DIP，Canvas 内部按 dpi/96 缩放；像素单位只出现在 Frame 上。
 
 #include <Windows.h>
-// WIN32_LEAN_AND_MEAN 会把 OLE 头排除掉，而 GDI+ 的 Image/Metafile 声明用到
-// IStream/PROPID —— 必须在 <gdiplus.h> 之前显式补上。
+// GDI+ 的 Image/Metafile 声明需要 IStream/PROPID，必须在 <gdiplus.h> 之前引入。
 #include <objidl.h>
 
 #include <gdiplus.h>
@@ -93,8 +87,7 @@ struct SizeF {
     float height = 0.0f;
 };
 
-/// 一条待回放的文字。Widget 绘制阶段只记录，整棵树画完后由 DirectWrite 以
-/// 灰度 AA 统一绘制（透明/不透明表面都能写正确的 alpha）；裁剪矩形随命令带走。
+/// 一条延迟回放的文字：Widget 只记录，整棵树画完后统一交给 DirectWrite。
 struct TextCommand {
     std::wstring text;
     RectF rect;
@@ -115,8 +108,7 @@ public:
 class Canvas {
 public:
     Canvas(Gdiplus::Bitmap& bitmap, float dpi, int width_px, int height_px);
-    /// D2D 硬件后端：形状直接画进 presenter 的 D2D 设备上下文（交换链 back buffer）。
-    /// target 由调用方拥有，Canvas 只借用；文字仍由 DirectWriteText 画到同一个 target。
+    /// D2D 硬件后端：target 由 presenter 拥有，Canvas 只借用。
     Canvas(ID2D1DeviceContext* target, float dpi, int width_px, int height_px);
     ~Canvas();
 
@@ -142,7 +134,7 @@ public:
     void pop_clip();
     void reset_clip();
 
-    /// 按给定宽度换行后的整体尺寸（DIP）。wrap=false 时宽度是整行宽度。
+    /// 换行后的整体尺寸（DIP）；wrap=false 时是整行宽度。
     SizeF measure_text(std::wstring_view text, float max_width, const TextStyle& style);
     /// 单行宽度；换行的文本请用 measure_text。
     float measure_text_width(std::wstring_view text, const TextStyle& style);
@@ -185,10 +177,7 @@ private:
     std::vector<RectF> clip_rects_;
 };
 
-/// 一帧：32bpp 预乘 alpha 的 DIB，既能给 GDI+ 画，也能给 UpdateLayeredWindow 用。
-///
-/// 用 DIB 而不是 Gdiplus::Bitmap 自持内存，是为了让 LayeredPresenter 能直接拿
-/// 同一块像素去 UpdateLayeredWindow —— 两条 present 路径共享同一份帧数据。
+/// 一帧：32bpp 预乘 alpha 的 DIB，GDI+ 与 UpdateLayeredWindow 共用同一块像素。
 class Frame {
 public:
     Frame(int width_px, int height_px, float dpi);
@@ -208,7 +197,6 @@ public:
     HDC memory_dc() const { return memory_dc_; }
     HBITMAP dib() const { return dib_; }
     /// 预乘 alpha 的 BGRA 像素，自上而下，行距 width_px() * 4。
-    /// GPU 呈现要把它整块拷进交换链的 staging 纹理。
     const void* bits() const { return bits_; }
 
     /// 整帧清成 alpha=0（SourceCopy）。Mica/Acrylic 下这就是「透出材质」。
