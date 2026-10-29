@@ -1,0 +1,346 @@
+Wren API（按头文件整理，v0.2.1）
+================================================================
+命名空间 wren。所有坐标是 DIP；所有颜色是 Color。签名省略了 std:: 前缀以外的默认参数。
+
+host.h
+----------------------------------------------------------------
+struct FrameStats {
+    unsigned long long frames;
+    double render_ms;      // 形状 + 文字（CPU）平均耗时
+    double paint_ms;       // 形状/清屏/布局
+    double text_ms;        // DirectWrite 文字
+    double present_ms;     // 上屏
+    double interval_ms;    // 相邻帧起点间隔中位数
+    double interval_p95_ms;
+    double interval_max_ms;
+    int    dropped;
+    int    refresh_hz;
+};
+
+struct HostOptions {
+    std::wstring title = L"Wren";
+    std::wstring window_class = L"WrenHostWindow";
+    int width_dip = 720;
+    int height_dip = 480;
+    Appearance appearance = Appearance::Auto;
+    MaterialPreference material = MaterialPreference::Auto;
+    std::function<void()> on_escape;   // 为空时 Esc 关窗
+};
+
+class Host {
+    bool create(HINSTANCE, std::unique_ptr<Widget> root, HostOptions = {});
+    int  run();
+    void quit(int exit_code = 0);
+    void close();
+
+    HWND hwnd() const;
+    Widget* root() const;
+
+    const Theme& theme() const;
+    Appearance appearance() const;
+    void set_appearance(Appearance);
+    MaterialKind material_kind() const;
+    MaterialPreference material_preference() const;
+    void set_material(MaterialPreference);
+    const wchar_t* presenter_name() const;
+    PresenterKind presenter_kind() const;
+
+    FrameStats frame_stats() const;
+    void reset_frame_stats();
+
+    float dpi() const;
+    float pixels(float dip) const;
+    float dip(float px) const;
+    int client_width_px() const;
+    int client_height_px() const;
+
+    void invalidate(const RectF* dirty = nullptr);   // 当前实现全量重画
+    void layout_changed();
+    void set_tick_handler(std::function<void()>);
+    void set_animating(bool animating, int interval_ms = 33);  // <=0 跟随合成器时钟
+    void schedule_once(int delay_ms, std::function<void()>);
+
+    Widget* focused_widget() const;
+    void focus_widget(Widget*);
+    bool focus_next(bool backwards);
+
+    // MSAA（automation.cpp 用）
+    struct AccessibleEntry { Widget* widget; int row; };
+    std::vector<AccessibleEntry> accessible_entries() const;
+    int  child_id_of(const Widget* widget) const;
+    void notify_accessible(const Widget* widget, LONG event_id);
+    void notify_list_selection(const Widget* table, int row);
+    RectF to_screen(const RectF& client_dip) const;
+    int accessibility_request_count() const;
+};
+
+widget.h
+----------------------------------------------------------------
+// 状态位（uint32_t）
+kStateFocusable / kStateFocused / kStateDisabled / kStateChecked
+kStateSelected / kStateReadOnly / kStateInvisible / kStateOffscreen
+
+enum class Role { Panel, Label, Button, Checkbox, Progress, Text, Table, Row, ScrollBar };
+
+struct MouseEvent { Type {Move, Down, Up, Wheel, Leave} type; float x, y; int wheel_delta; bool left_button; };
+struct KeyEvent   { UINT vk; bool ctrl, shift, alt; bool is_down; };
+
+class Widget {
+    // 字段
+    RectF bounds; int control_id; Widget* parent; Host* host;
+    bool visible, enabled, tab_stop, focused, focus_visible, hovered, pressed;
+    std::wstring text;
+
+    // 生命周期与绘制
+    virtual void paint(Canvas&) = 0;
+    virtual Widget* hit_test(float x, float y);
+    virtual bool on_mouse(const MouseEvent&);
+    virtual bool on_key(const KeyEvent&);
+    virtual void tick(float dt_seconds);
+    virtual void on_focus();
+    virtual void on_blur();
+    virtual void on_theme_changed();
+
+    // 无障碍
+    virtual std::wstring accessible_name() const;      // 默认 text
+    virtual Role accessible_role() const = 0;
+    virtual std::wstring accessible_value() const;
+    virtual std::wstring accessible_default_action() const;
+    virtual void do_default_action();
+    virtual uint32_t accessible_state() const;
+    virtual int accessible_row_count() const;          // Table 覆盖
+    virtual bool is_default_button() const;
+
+    virtual const std::vector<std::unique_ptr<Widget>>* child_widgets() const;
+
+    bool accepts_focus() const;      // tab_stop && visible && enabled
+    void invalidate();
+    void invalidate_with(const RectF&);
+    void focus();
+    const Theme& theme() const;
+
+protected:
+    void paint_focus_ring(Canvas&, float radius = 6.0f) const;
+};
+
+class Panel : public Widget {
+    Widget* add(std::unique_ptr<Widget> child);
+    template <typename T, typename... Args> T* emplace(Args&&...);
+    const std::vector<std::unique_ptr<Widget>>& children() const;
+};
+
+void attach_host(Widget& root, Host* host);   // Host::create 内部已调用
+
+controls.h
+----------------------------------------------------------------
+struct ScrollBarMetrics { RectF track, thumb; bool visible; };
+ScrollBarMetrics scrollbar_metrics(const RectF& area, float content_height, float viewport_height,
+                                   float scroll, float width = 9.0f);
+float scroll_for_thumb_y(const RectF& area, float content_height, float viewport_height,
+                         float thumb_y, float thumb_height);
+
+enum class LabelTone { Primary, Secondary, Disabled, Accent, Warning };
+class Label : Widget {
+    Label(std::wstring value = {}, TextStyle style = {});
+    void set_style(const TextStyle&);  const TextStyle& style() const;
+    void set_tone(LabelTone);          LabelTone tone() const;
+    void set_text(std::wstring);       // 也走 Widget::text
+    void set_align(TextAlign); void set_valign(TextVAlign); void set_ellipsis(bool);
+};
+
+class Button : Widget {
+    Button(std::wstring caption = {}, std::function<void()> on_click = {});
+    void set_on_click(std::function<void()>);
+    void set_primary(bool); bool is_primary() const;
+    void set_default(bool); bool is_default_button() const;
+    void set_icon(IconId);
+    void click();
+};
+
+class Checkbox : Widget {
+    Checkbox(std::wstring label = {});
+    void set_checked(bool); bool checked() const;
+    void set_on_changed(std::function<void(bool)>);
+    void toggle();
+};
+
+class ProgressBar : Widget {
+    ProgressBar();
+    void set_value(int percent);        // 无障碍按整数报告
+    void set_value_f(float percent);    // 亚百分比绘制
+    int value() const; float value_f() const;
+    void set_marquee(bool); bool marquee() const;
+};
+
+class TextView : Widget {
+    TextView(std::wstring value = {}, TextStyle style = {});
+    void set_style(const TextStyle&);
+    void set_text(std::wstring);
+    void set_read_only(bool); bool read_only() const;
+    void set_show_scrollbar(bool);
+    void copy_all();                    // Ctrl+C 同样效果
+};
+
+class Table : Widget {
+    struct Column { std::wstring title; float width = 100.0f; };
+    Table();
+    void set_columns(std::vector<Column>);
+    void set_rows(std::vector<std::vector<std::wstring>>);
+    const std::vector<std::vector<std::wstring>>& rows() const;
+    int row_count() const;
+    int selected_row() const;
+    void set_selected_row(int index, bool notify = true);
+    void set_on_selection_changed(std::function<void(int)>);
+    std::wstring row_text(int index) const;
+    RectF row_view_bounds() const;
+    RectF row_bounds(int index) const;
+    int row_at(float x, float y) const;
+    float header_height() const;   // 28
+    float row_height() const;      // 26
+};
+
+canvas.h
+----------------------------------------------------------------
+struct RectF { float x, y, width, height; right(); bottom(); empty(); contains(px,py); inset(a); offset(dx,dy); };
+
+struct Color {
+    float r, g, b, a;
+    static Color from_argb(uint32_t);
+    static Color rgb(uint8_t r, uint8_t g, uint8_t b);
+    static Color rgba(uint8_t r, uint8_t g, uint8_t b, float alpha);
+    static Color from_colorref(COLORREF);
+    static Color white(); black(); transparent();
+    Color with_alpha(float) const;  Color mix(const Color&, float t) const;
+};
+
+enum class IconId { None, Check, ChevronRight, Info, Warning, Shield, Close, Download };
+enum class TextAlign { Left, Center, Right };
+enum class TextVAlign { Top, Center, Bottom };
+
+struct TextStyle {
+    std::wstring family = L"Microsoft YaHei UI";
+    float size = 14.0f;        // DIP
+    int weight = 400;          // 400 / 600
+    bool wrap = false, ellipsis = false, italic = false;
+    TextAlign align = TextAlign::Left;
+    TextVAlign valign = TextVAlign::Top;
+};
+
+struct SizeF { float width, height; };
+
+class Canvas {
+    Canvas(Gdiplus::Bitmap&, float dpi, int w_px, int h_px);   // 软件
+    Canvas(ID2D1DeviceContext*, float dpi, int w_px, int h_px); // 硬件（借用）
+    bool hardware() const;
+    void set_dpi(float);  float dpi() const;
+    void set_text_metrics(TextMetrics*);
+
+    void fill_rect(const RectF&, const Color&);
+    void fill_round_rect(const RectF&, float radius, const Color&);
+    void stroke_round_rect(const RectF&, float radius, const Color&, float width = 1.0f);
+    void draw_line(float x1, float y1, float x2, float y2, const Color&, float width = 1.0f);
+    void draw_text(std::wstring_view, const RectF&, const TextStyle&, const Color&);
+    void draw_icon(IconId, const RectF&, const Color&);
+    void draw_image(const Gdiplus::Image&, const RectF&);   // D2D 路径 no-op
+
+    void push_clip(const RectF&); void pop_clip(); void reset_clip();
+
+    SizeF measure_text(std::wstring_view, float max_width, const TextStyle&);
+    float measure_text_width(std::wstring_view, const TextStyle&);
+    float line_height(const TextStyle&);
+
+    void set_defer_text(bool); bool defer_text() const;
+    const std::vector<TextCommand>& text_commands() const;
+    void clear_text_commands();
+    void draw_text_immediate(std::wstring_view, const RectF&, const TextStyle&, const Color&, const RectF& clip = {});
+    void flush();
+};
+
+class Frame {                       // 一帧 DIB（GDI 路径 / layered）
+    Frame(int w_px, int h_px, float dpi);
+    void resize(int w_px, int h_px, float dpi);
+    Canvas& canvas() const; Gdiplus::Bitmap& bitmap() const;
+    int width_px() const; int height_px() const; float dpi() const;
+    HDC memory_dc() const; HBITMAP dib() const; const void* bits() const;
+    void clear_transparent();
+};
+
+theme.h
+----------------------------------------------------------------
+enum class Appearance { Auto, Light, Dark, HighContrast };
+
+struct Theme {
+    Appearance appearance; bool material_visible;
+    Color text, text_secondary, text_disabled,
+          accent, on_accent,
+          card, card_border,
+          control, control_border, control_hover, control_pressed,
+          window_solid, focus_ring, selection,
+          table_header, table_hover,
+          progress_track, progress_fill,
+          scrollbar_track, scrollbar_thumb,
+          warning, warning_surface;
+    float radius_card = 12.0f, radius_control = 6.0f;
+    TextStyle title, heading, body, caption, button, mono;
+};
+
+Theme make_theme(Appearance, bool material_visible);
+Appearance detect_appearance();
+bool high_contrast_enabled();
+bool transparency_enabled();
+bool remote_session();
+Color system_accent();
+
+material.h
+----------------------------------------------------------------
+enum class MaterialKind { Solid, Acrylic, Mica };
+enum class MaterialPreference { Auto, Solid, Acrylic, Mica };
+class Material { MaterialKind kind() const; bool apply(HWND, bool dark); Color tint() const; };
+std::unique_ptr<Material> make_material(MaterialPreference);
+void apply_dark_title_bar(HWND, bool dark);
+const wchar_t* material_name(MaterialKind);
+
+presenter.h
+----------------------------------------------------------------
+enum class PresenterKind { Gdi, Gpu, Layered };
+class Presenter {
+    PresenterKind kind() const; const wchar_t* name() const;
+    bool initialize(HWND, int w_px, int h_px);
+    void resize(int w_px, int h_px);
+    void present(const Frame&, HDC);
+    ID2D1DeviceContext* d2d_context() const;   // 非空 = 直接画硬件表面
+    bool compositor_paced() const;
+    bool begin_frame(float dpi); void end_frame();
+    HANDLE frame_wait_handle() const;
+    bool healthy() const;
+};
+std::unique_ptr<Presenter> make_gdi_presenter();
+std::unique_ptr<Presenter> make_layered_presenter(HWND);
+std::unique_ptr<Presenter> make_gpu_presenter(HWND, int w_px, int h_px);   // 失败返回 nullptr
+
+dwrite_text.h
+----------------------------------------------------------------
+class DirectWriteText final : public TextMetrics {
+    bool initialize();
+    bool bind(HDC memory_dc, int w_px, int h_px);   // DC 路径（DIB）
+    bool bind(ID2D1RenderTarget*);                  // 硬件路径（借用）
+    void reset();
+    bool begin(float dpi, bool begin_draw = true);  // false 时由 presenter 统一 BeginDraw
+    void draw(const TextCommand&);
+    void end(bool end_draw = true);
+    bool ready() const;
+    float measure_width(std::wstring_view, const TextStyle&, float dpi) override;
+    float line_height(const TextStyle&, float dpi) override;
+};
+
+text_layout.h
+----------------------------------------------------------------
+struct WrappedLine { std::wstring text; float width; };
+using MeasureWidth = std::function<float(std::wstring_view)>;
+std::vector<WrappedLine> wrap_text(std::wstring_view text, float max_width, const MeasureWidth& measure);
+bool is_breakable_cjk(wchar_t c);
+
+automation.h
+----------------------------------------------------------------
+using AccessiblePtr = std::unique_ptr<IAccessible, AccessibleReleaser>;
+AccessiblePtr create_accessibility_root(Host*);   // Host::create 内部已调用
