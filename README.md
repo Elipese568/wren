@@ -238,6 +238,11 @@ Release，760×620，浅色 Mica，安装进度动画（本机 RTX 4060 Ti / 180
 - Table 列宽固定，无排序、无列宽拖动、无双击。
 - layered 模式没有系统 caption/shadow，顶部区域用于拖动，是备选路径。
 
+## 给 AI 的技能
+
+[`skills/wren-ui`](skills/wren-ui) 是给编码代理（Claude Code / DSH 等）用的 Wren 使用
+指南：`SKILL.md` + 完整 API 签名 + 可粘贴配方 + 排查手册。安装方式见该目录的 README。
+
 ## 设计文档
 
 [`docs/design.md`](docs/design.md) 是这个框架的设计依据（最初为 msixpkg 安装器编写，
