@@ -45,7 +45,10 @@ add_library(Wren::wren ALIAS wren)
 target_include_directories(wren PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
 target_compile_features(wren PUBLIC cxx_std_20)
 target_compile_definitions(wren PUBLIC UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
-target_compile_options(wren PRIVATE /utf-8 /W4 /permissive- /EHsc /Zc:__cplusplus)
+# 头文件里的注释是 UTF-8 中文：使用方也必须按 UTF-8 读源码，否则 MSVC 会按 ANSI
+# 代码页误解注释、吞掉下一行，连 #include 都会丢。
+target_compile_options(wren PUBLIC /utf-8)
+target_compile_options(wren PRIVATE /W4 /permissive- /EHsc /Zc:__cplusplus)
 
 # gdiplus：帧与形状；d2d1/dwrite：灰度文字与 D2D 绘制；d3d11/dxgi/dcomp：组合交换链；
 # dwmapi：材质/深色标题栏/圆角；oleacc：LresultFromObject；oleaut32：SysAllocString；
