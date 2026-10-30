@@ -758,8 +758,7 @@ private:
                 return S_OK;
             }
 
-            const long count =
-                host_ != nullptr ? static_cast<long>(host_->accessible_entries().size()) : 0;
+            const long count = host_ != nullptr ? static_cast<long>(host_->accessible_entries().size()) : 0;
             return (child.lVal >= 1 && child.lVal <= count) ? S_OK : E_INVALIDARG;
         }
 
